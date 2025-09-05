@@ -1,0 +1,40 @@
+# Rails / Ruby
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+/storage/*
+!/storage/.keep
+/public/assets
+/node_modules
+/vendor/bundle
+/.bundle
+.byebug_history
+.rspec
+coverage
+.sass-cache
+*.rbc
+
+# Secrets / env
+.env
+.env.*
+config/master.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Docker (optional)
+docker-compose.override.yml
+
+
+*.settings*
+*target*
+*.classpath*
+*.project*
+*dependency-reduced-pom.xml*
+.idea*
+package-lock.json
+.history/
