@@ -1,0 +1,405 @@
+:javascript
+  var outside_data = null;
+
+  function RibbonFilter(data){
+    this.data = data;
+    this.filter = {};
+    this.filter_types = {};
+    this.filter_names = {};
+
+    this.isolate = [];
+
+    this.grouping_order = [];
+
+    //Initialization Tasks
+    this.build_filter_menu();
+    this.build_grouping_menu();
+    this.update_filter_hash();
+  }
+
+  RibbonFilter.prototype = {
+    build_grouping_menu: function(){
+      this.all_groups().forEach(function(group){
+        $("#included_groups").append('<div id="group-'+group+'">'+group+'</div>');
+      });
+
+      this.all_demographics().forEach(function(demog){
+        $("#other_groups").append('<div id="group-'+demog+'">'+demog+'</div>');
+      });
+    },
+
+    build_filter_menu: function(){
+      var first_time = true;
+
+      var filter = this.filter;
+      var filter_types = this.filter_types;
+      var filter_names = this.filter_names;
+
+      //TODO: Fix error caused by missing demographics on the first student in the array
+
+      this.data["STUDENTS"].forEach(function(student){
+        var demographics = student["DEMOGRAPHICS"];
+
+        if (first_time){
+          first_time = false;
+
+          for (var key in demographics){
+            var safe_key = css_safe(key);
+            filter_names[safe_key] = key;
+            if (typeof demographics[key] == "string"){
+              filter[safe_key] = [demographics[key]];
+              filter_types[safe_key] = "string";
+            } else if (typeof demographics[key] == "boolean"){
+              filter[safe_key] = "Included";
+              filter_types[safe_key] = "boolean";
+            } else if (typeof demographics[key] == "number"){
+              filter[safe_key] = [demographics[key],demographics[key]];
+              filter_types[safe_key] = "number";
+            } else if (demographics[key] == null) {
+              demographics[key] = "Not Specified";  // Rare problem here if the value in the first record is null and then not null in any other record.
+              filter[safe_key] = null;
+            }
+          }
+        } else {
+          for (var key in demographics){
+            var safe_key = css_safe(key);
+            if (typeof demographics[key] == "string" && (filter[safe_key] == null || filter[safe_key].indexOf(demographics[key]) == -1) ){
+              if (filter[safe_key] == null) filter[safe_key] = [];
+              filter[safe_key].push(demographics[key]);
+            } else if (typeof demographics[key] == "number"){
+              if (filter[safe_key] == null) filter[safe_key] = [demographics[key],demographics[key]];
+
+              if (parseFloat(demographics[key]) < parseFloat(filter[safe_key][0]))
+                filter[safe_key][0] = parseFloat(demographics[key]);
+
+              if (parseFloat(demographics[key]) > parseFloat(filter[safe_key][1]))
+                filter[safe_key][1] = parseFloat(demographics[key]);
+            } else if (typeof demographics[key] == "boolean"){
+              if (filter[safe_key] == null) filter[safe_key] = "Included";
+            } else if (demographics[key] == null){
+              if (filter[safe_key] == null) filter[safe_key] = [demographics[key],demographics[key]];
+
+              demographics[key] = "Not Specified";
+              if (filter_types[safe_key] == "string" && filter[safe_key].indexOf("Not Specified") == -1)
+                filter[safe_key].push(demographics[key]);
+            }
+          }
+        }
+      });
+
+      // Iterate over all student records to build new filters
+      this.data["STUDENTS"].forEach(function(student){
+        student["RECORDS"].forEach(function(record) {
+            record["GROUPS"].forEach(function(group) {
+                for (var key in group) {
+                    var safe_key = css_safe(key);
+                    if (!filter.hasOwnProperty(safe_key)) {
+                        filter[safe_key] = [];
+                        filter_types[safe_key] = "string";  // All new filters are string-based
+                        filter_names[safe_key] = key;
+                    }
+                    
+                    // Avoid duplicates
+                    if (filter[safe_key].indexOf(group[key]) === -1) {
+                        filter[safe_key].push(group[key]);
+                    }
+                }
+            });
+        });
+      });
+
+      if (filter.hasOwnProperty("major") && Array.isArray(filter["major"])) {
+        filter["major"].sort()
+      }
+
+      
+      var filter_count = 0;
+      for (var safe_key in filter){
+        var key = this.filter_names[safe_key];
+        if (filter_types[safe_key] == "string"){
+          this.generate_string_menu_item(key, safe_key, filter[safe_key]);
+        } else if (filter_types[safe_key] == "boolean"){
+          this.generate_boolean_menu_item(key, safe_key, filter[safe_key]);
+        } else if (filter_types[safe_key] == "number"){
+          this.generate_numeric_menu_item(key, safe_key, filter[safe_key]);
+        }
+        filter_count++;
+      }
+      if (filter_count == 0) $("#filter_menu").hide();
+
+      $("#time_select_all").click(function(){
+        $("#time_select option").prop('selected', true);
+      });
+    },
+
+    generate_string_menu_item : function(key, safe_key, values){
+      // Ensure values is an array and has valid options
+      if (!Array.isArray(values) || values.length === 0) {
+        values = [];  // Ensure that values is at least an empty array
+      }
+
+      var html_string = '<div class="filter-form-item">\n'+
+        '<label for="'+safe_key+'" class="filter-label">'+key+':</label>\n<br>\n'+
+        '<div class="indent">'+
+        '<select id="'+safe_key+'" multiple>\n';
+
+      // Iterate through values and generate options for the dropdown
+      values.forEach(function(val){
+        html_string +='<option value="'+val+'" selected>'+val+'</option>\n';  // No default "selected"
+      });
+
+      html_string += (
+        '</select>\n<br>\n'+
+          '<a class="select_all" href="" id="'+safe_key+'_select_all">Select All</a> / '+
+          '<a class="select_none" href="" id="'+safe_key+'_select_none">Select None</a>'+
+        '</div>'+ '</div>\n'
+      );
+
+      // Append the generated HTML to the filters
+      $("#filters").append(html_string);
+    },
+
+    generate_boolean_menu_item : function(key, safe_key, values){
+      var html_string = '<div class="filter-form-item">\n'+
+        '<label for="'+safe_key+'"  class="filter-label">'+key+':</label>\n<br>\n'+
+        '<div class="indent">'+
+          '<select id="'+safe_key+'">\n'+
+            '<option value="Included" selected>Included</option>\n'+
+            '<option value="Excluded">Excluded</option>\n'+
+            '<option value="Only">Only</option>\n'+
+          '</select>\n<br>\n'+
+          '<label for="'+safe_key+'_include_nulls">Include Nulls:</label>\n'+
+          '<input type="checkbox" id="'+safe_key+'_include_nulls" checked>'+
+        '</div>'+
+      '</div>\n';
+
+      $("#filters").append(html_string);
+    },
+
+    generate_numeric_menu_item : function(key, safe_key, values){
+      var html_string = '<div class="filter-form-item">\n'+
+        '<p class="filter-label">'+key+':<p>'+
+        '<div class="indent">'+
+          '<label for="'+safe_key+'_min">Min:</label>\n'+
+          '<input type="number" id="'+safe_key+'_min" min="'+values[0]+'" max="'+values[1]+'" value="'+values[0]+'" step="any">\n'+
+          '<label for="'+safe_key+'_max">Max:</label>\n'+
+          '<input type="number" id="'+safe_key+'_max" min="'+values[0]+'" max="'+values[1]+'" value="'+values[1]+'" step="any">\n<br>'+
+          '<label for="'+safe_key+'_include_nulls">Include Nulls:</label>\n'+
+          '<input type="checkbox" id="'+safe_key+'_include_nulls" checked>'+
+        '</div>'+
+      '</div>\n';
+
+      $("#filters").append(html_string);
+    },
+
+    update_filter_hash : function(){
+      for (var key in this.filter){
+        if (this.filter_types[key] == "string"){
+          this.filter[key] = $("#"+key).val();
+        } else if (this.filter_types[key] == "boolean"){
+          this.filter[key] = $("#"+key).val();
+        } else if (this.filter_types[key] == "number"){
+          this.filter[key] = [$("#"+key+"_min").val(),$("#"+key+"_max").val()];
+        }
+      }
+    },
+
+    filter_data : function(){
+      var filtered_data = {"STUDENTS":[]};
+
+      var filter = this.filter;
+      var filter_types = this.filter_types;
+      var isolate = this.isolate;
+
+      this.update_filter_hash();
+
+      this.data["STUDENTS"].forEach(function(student){
+        var demographics = student["DEMOGRAPHICS"];
+        var push = true;
+
+        for (var key in demographics){
+          var safe_key = css_safe(key);
+          var filter_val = $("#" + safe_key).val();
+
+          /*
+          if (filter_types[safe_key] == "string"){
+            if ($("#"+safe_key).val().indexOf(demographics[key]) == -1)
+              push = false;
+
+          } else if (filter_types[safe_key] == "boolean"){
+            if ($("#"+safe_key).val() == "Only" && demographics[key] == false)
+              push = false;
+
+            if ($("#"+safe_key).val() == "Excluded" && demographics[key] == true)
+              push = false;
+
+            if ($("#"+safe_key+"_include_nulls").prop('checked') == false && demographics[key] == "Not Specified")
+              push = false;
+
+          } else if (filter_types[safe_key] == "number"){
+            if (demographics[key] != "Not Specified" && parseFloat($("#"+safe_key+"_min").val()) > parseFloat(demographics[key])){
+              push = false;
+            }
+
+
+            if (demographics[key] != "Not Specified" && parseFloat($("#"+safe_key+"_max").val()) < parseFloat(demographics[key])){
+              push = false;
+            }
+
+            if ($("#"+safe_key+"_include_nulls").prop('checked') == false && demographics[key] == "Not Specified")
+              push = false;
+          }
+        }
+        */
+
+        // Check if the filter_val and demographics[key] are defined
+        if (filter_val && filter_val.indexOf && demographics[key] !== undefined) {
+          if (filter_types[safe_key] == "string"){
+            if (filter_val.indexOf(demographics[key]) == -1) {
+              push = false;
+            }
+          } else if (filter_types[safe_key] == "boolean"){
+            if (filter_val == "Only" && demographics[key] == false)
+              push = false;
+            if (filter_val == "Excluded" && demographics[key] == true)
+              push = false;
+            if ($("#"+safe_key+"_include_nulls").prop('checked') == false && demographics[key] == "Not Specified")
+              push = false;
+          } else if (filter_types[safe_key] == "number"){
+            if (demographics[key] != "Not Specified" && (parseFloat($("#"+safe_key+"_min").val()) > parseFloat(demographics[key]) || parseFloat($("#"+safe_key+"_max").val()) < parseFloat(demographics[key]))){
+              push = false;
+            }
+            if ($("#"+safe_key+"_include_nulls").prop('checked') == false && demographics[key] == "Not Specified")
+              push = false;
+          }
+        }
+      }
+
+        var foundMatch = {};
+        student["RECORDS"][0]["GROUPS"].forEach(function(group) {
+          for (var key in group) {
+            foundMatch[key] = false; // Initialize all group keys to false
+          }
+        });
+
+        // Loop through all records to check for matching filters
+        student["RECORDS"].forEach(function(record) {
+          record["GROUPS"].forEach(function(group) {
+              for (var key in group) {
+                  if (foundMatch[key] === false) { // Only check if not already matched
+                    var safe_key = css_safe(key);  // Sanitize key for use
+                    if (filter[safe_key] && filter[safe_key].indexOf(group[key]) !== -1) { // If a match is found
+                        foundMatch[key] = true;   // Mark as matched
+                    }
+                  }
+              }
+          });
+        });
+
+        // If any group key in foundMatch is still false, set push to false
+        for (var key in foundMatch) {
+          if (foundMatch[key] === false) {
+            push = false;
+            break;  // Break out if a mismatch is found
+          }
+        }
+
+
+
+        isolate.forEach(function(isolate_node){
+          var node_time = isolate_node.time;
+          var node_signature = [{name: isolate_node.name, type: isolate_node.type}];
+
+          var parent_node = isolate_node.parent_node;
+
+          while (parent_node != null){
+            node_signature.push({name: parent_node.name, type: parent_node.type});
+            parent_node = parent_node.parent_node;
+          }
+
+          node_signature.reverse();
+
+          var has_record_at_node_time = false;
+          for (var i = 0; i < student["RECORDS"].length; i++){
+            if (student["RECORDS"][i]["TIME"] == node_time){
+
+              for (var j = 0; j < node_signature.length; j++){
+                if (node_signature[j].name != student["RECORDS"][i]["GROUPS"][j][node_signature[j].type]){
+                  push = false;
+                }
+
+              }
+
+              has_record_at_node_time = true;
+              break;
+            }
+          }
+
+          if (!has_record_at_node_time)
+            push = false;
+
+        });
+
+
+
+        if (push)
+          filtered_data["STUDENTS"].push(student);
+
+      });
+
+      return filtered_data;
+    },
+
+    isolate_by_group: function(node){
+      this.isolate.push(node);
+    },
+
+    undo_isolate_by_group: function(index){
+      this.isolate.splice(index,1);
+    },
+
+    isolate_description: function(){
+      var description = "";
+
+      if (this.isolate.length > 0){
+        description += "<p>Isolating students who were:<\p>";
+
+        this.isolate.forEach(function(node,index){
+          description += (
+            "<p>"+node.get_unique_name() +" in "+ node.time + " <a href='#' id='remove-isolate-"+index+"' class='remove-isolate'>X</a><\p>"
+          );
+        });
+      }
+      return description;
+    },
+
+    all_groups: function(){
+      var groups = [];
+
+      this.data["STUDENTS"].forEach(function(student){
+        student["RECORDS"].forEach(function(record){
+          record["GROUPS"].forEach(function(group){
+            for (var key in group){
+              if (groups.indexOf(key) == -1) groups.push(key);
+            }
+          });
+        });
+      });
+
+      return groups;
+    },
+
+    all_demographics: function(){
+      var demogs = [];
+
+      this.data["STUDENTS"].forEach(function(student){
+        for(var key in student["DEMOGRAPHICS"]){
+          if (demogs.indexOf(key) == -1){
+            demogs.push(key);
+          }
+        }
+      });
+
+      return demogs;
+    }
+  }

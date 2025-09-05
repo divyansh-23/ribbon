@@ -1,0 +1,4 @@
+%div{:id => "file_field_#{f.options[:child_index]}", :class => "field"}
+  = f.label :data_file, "File: "
+  = f.file_field :data_file
+  = f.hidden_field :name

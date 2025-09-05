@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= Rails.env == "development" ? "Dev" : ""%> RibbonDiagram</title>
+  <%= stylesheet_link_tag    'application', :media => 'all' %>
+  <%= stylesheet_link_tag params[:controller] %>
+  <%= javascript_include_tag 'application' %>
+  <%= javascript_include_tag params[:controller] %>
+  <%= csrf_meta_tags %>
+
+
+  <link rel="icon" type="image/png" href="<%= asset_path('ribbon_favicon.png') %>">
+
+</head>
+<body>
+<div id="header">
+    <div id="flash">
+        <% flash.each do |name, msg| %>
+          <%= content_tag :div, msg, :id => name %>
+        <% end %>
+    </div>
+</div>
+
+<div class="page-content">
+    <%= yield %>
+</div>
+
+<div id="main_footer">
+    <p id="copyright">
+        COPYRIGHT @ UC REGENTS 2015-2023, <strong> MODIFIED UMD 2024 </strong>
+    </p>
+</div>
+
+</body>
+</html>

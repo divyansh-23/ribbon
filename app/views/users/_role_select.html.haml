@@ -1,0 +1,149 @@
+%ul
+  %li
+    %p Users with no assigned roles can only view diagrams.  They can only view diagrams shared with them and they can not download the underlying data.
+  %li
+    %p Institution admins (assigned the role 'institution-admin') can see all diagrams and do everything.
+  %li
+    %p Institution admins and users with the 'user-approve' role will be emailed by the system when a new user registers.
+  %li
+    %p Users who aren't institution admins can only grant roles to users that they also possess.
+  %li
+    %p Some roles functionally depend on other roles.  For instance, it would be pretty hard to update a user if you can't view the user list.  When a role with a dependency is added the application will automatically add the required roles and notify the user.
+
+.indent
+  %table
+    %thead
+      %tr
+        %th
+        %th Role
+        %th Description
+        %th Required by
+    %tbody
+      %tr
+        %td= check_box_tag 'institution-admin', 1,  false, {:class => 'role-select'}
+        %td.role-name  institution-admin
+        %td This role is equivalent to being granted all roles.  In addition a institution-admin can view, edit, and delete all diagrams and data created by all users in the institution regardless of if they were shared with her or him.
+        %td None
+      %tr
+        %td= check_box_tag 'user-view', 1,  false, {:class => 'role-select'}
+        %td.role-name  user-view
+        %td This role grants the user access to the user list and the user show page with more information about the user.
+        %td user-update, user-delete
+      %tr
+        %td= check_box_tag 'user-update', 1,  false, {:class => 'role-select'}
+        %td.role-name  user-update
+        %td This role grants the user access to the user edit page.
+        %td user-approve, user-set-roles
+      %tr
+        %td= check_box_tag 'user-set-roles', 1,  false, {:class => 'role-select'}
+        %td.role-name  user-set-roles
+        %td This role allows a user to edit the roles of other users.  A user can only grant roles that he or she also possesses.
+        %td None
+      %tr
+        %td= check_box_tag 'user-approve', 1,  false, {:class => 'role-select'}
+        %td.role-name  user-approve
+        %td This role allows a user to approve new users for your institution.  Users with this role will automatically be sent notification emails when a new user signs up.
+        %td None
+      %tr
+        %td= check_box_tag 'user-destroy', 1,  false, {:class => 'role-select'}
+        %td.role-name  user-destroy
+        %td This role allows a user to delete other users.
+        %td None
+      %tr
+        %td= check_box_tag 'diagram-create', 1,  false, {:class => 'role-select'}
+        %td.role-name  diagram-create
+        %td This role allows a user to create diagrams. A diagram's creator can always edit the diagram, download its data files, and view it.  Users can not delete diagrams unless they have the diagram-destroy role.
+        %td diagram-update, diagram-destroy
+      %tr
+        %td= check_box_tag 'diagram-update', 1,  false, {:class => 'role-select'}
+        %td.role-name  diagram-update
+        %td This role allows a user to edit their own diagrams.  This includes changing a diagram's name, description, replacing its data files, and sharing the diagram with other users.
+        %td None
+      %tr
+        %td= check_box_tag 'diagram-destroy', 1,  false, {:class => 'role-select'}
+        %td.role-name  diagram-destroy
+        %td This role allows a user to delete the diagrams they have created.
+        %td None
+      %tr
+        %td= check_box_tag 'diagram-download', 1,  false, {:class => 'role-select'}
+        %td.role-name  diagram-download
+        %td This role allows a user to download diagrams that have been shared with them and that have been marked as downloadable by their creator.  Users can always download the diagrams they create.
+        %td None
+  #role-messages
+  = button_tag "Remove All Roles", :type => "button", :id => "clear_roles"
+  = hidden_field nil, :roles, :value => @user.roles.map{|r| r.name}.join(",")
+
+  %p{:style => "color:red;"}  If these roles do not meet all the requirements for your university, please contact us so we can improve them.
+
+:javascript
+  var role_dependencies = #{@user.role_dependencies.to_json.html_safe}
+  var dependent_roles = #{@user.dependent_roles.to_json.html_safe}
+  var current_roles = #{@user.roles.map{|r| r.name}.to_json.html_safe}
+
+  current_roles.forEach(function(role){
+    $("#"+role).attr("checked", true);
+    $("#"+role).parent().siblings(".role-name").addClass("role-selected");
+  });
+
+  $('.role-select').on("change", function(e) {
+    var idSelector = function() { return this.id; };
+    var vals = $(".role-select:checked").map(idSelector).get();
+    var messages = [];
+    var changed_role = $(this).attr("id");
+
+    vals.forEach(function(role){
+      var role_to_add = role_dependencies[role];
+      var dependent_role = role;
+
+      if (role_to_add != changed_role) {
+        while (role_to_add != undefined && vals.indexOf(role_to_add) == -1){
+          messages.push("The role "+dependent_role+" depends on the role "+role_to_add+". "+role_to_add+" has been automatically added.");
+          vals.push(role_to_add);
+          dependent_role = role_to_add;
+          role_to_add = role_dependencies[role_to_add];
+        }
+      }
+    });
+
+    if ($(this).is(':not(:checked)') && dependent_roles[changed_role] != undefined){
+      dependent_roles[changed_role].forEach(function(role){
+        var index = vals.indexOf(role);
+        if (index > -1) {
+           vals.splice(index, 1);
+           messages.push("The role "+role+" depends on the role "+changed_role+". "+role+" has been automatically removed.");
+        }
+      });
+    }
+
+    $(".role-name").removeClass("role-selected");
+    $(".role-select").prop("checked",false);
+    vals.forEach(function(role){
+      var e = $("#"+role)
+      e.prop("checked",true);
+      e.parent().siblings(".role-name").addClass("role-selected");
+    });
+
+    $("#roles").val(vals.join(","));
+
+    $("#role-messages").html("");
+    messages.forEach(function(m){
+      $("#role-messages").append("<p>"+m+"</p>");
+    });
+
+    return true;
+  });
+
+  $("#clear_roles").click(function(){
+    $(".role-name").removeClass("role-selected");
+    $(".role-select").prop("checked",false);
+    $("#roles").val('');
+  });
+
+  $(document).ready(function() {
+    $(window).keydown(function(event){
+      if(event.keyCode == 13) {
+        event.preventDefault();
+        return false;
+      }
+    });
+  });

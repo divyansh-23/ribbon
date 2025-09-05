@@ -1,0 +1,78 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
+ * or vendor/assets/stylesheets of plugins, if any, can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the bottom of the
+ * compiled file so the styles you add here take precedence over styles defined in any styles
+ * defined in the other CSS/SCSS files in this directory. It is generally better to create a new
+ * file per style scope.
+ *
+ *= require_self
+ *= require scaffolds
+ *= require dataTables/extras/dataTables.responsive
+ *= require dataTables/jquery.dataTables
+ *= require customize_dataTables
+ *= require select2
+ *= require slicknav
+ */
+
+#site_title a {
+    color: black;
+    text-decoration: none;
+}
+
+#site_title a:hover {
+    background: white;
+}
+
+
+@media screen and (orientation:landscape) {
+    .page-content{
+        display: inline-block;
+        width: 75%;
+        margin-right: 1%;
+        margin-left: 1%;
+        vertical-align: top;
+    }
+
+    .slicknav{
+        margin-right: 5px;
+        vertical-align: top;
+        display: inline-block;
+        z-index: 100;
+        position:relative;
+    }
+}
+
+#copyright{
+    font-size:large;
+}
+
+.indent{
+    margin-left: 10px;
+}
+
+.slicknav-container{
+    display:inline-block;
+    overflow: visible;
+    height:30px;
+}
+
+#site_title{
+    display:inline-block;
+    vertical-align: top;
+    margin: 12px 0px 12px 0px;
+}
+
+#header {
+    margin: 10px 0px 10px 0px;
+
+}
+
+.new_user_text_fields {
+    width: 100%; /* Ensures the textarea takes full width of its container */
+    min-height: 100%; /* Minimum height to show text without scrolling */
+}

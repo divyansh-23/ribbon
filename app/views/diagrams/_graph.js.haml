@@ -1,0 +1,473 @@
+:javascript
+  function RibbonGraph(data,filter){
+    this.filter = filter;
+    this.data = data;
+
+    this.nodes = [];  //nested
+    this.links = [];  //flat
+
+    this.views = [];  //This times being viewed. The first time defines the starting cohort.
+    this.times = [];  //The times available
+
+    //Used primarily for status messages
+    this.total_count = null;
+    this.filtered_starting_cohort_count = null;
+    this.not_specified_count = {};
+
+
+    //Attempt to get times in the right order based on the relative ordering of each timeline of records.
+    //TODO add a canonical timeline to the json input and if it exists use that instead of the get_times_from_data_function.
+    this.get_times_from_data();
+
+    //Set initial times to view
+    this.views.push(this.times[0]);
+    this.views.push(this.times[this.times.length-1]);
+
+
+    //Add times as options to to time_select
+    var views = this.views;
+    $("#time_select").html("");
+    this.times.forEach(function(time,i, array){
+      $("#time_select").append('<option value="'+time+'" '+(views.indexOf(time) != -1 ? "selected" : "")+'>'+time+'</option>')
+    });
+
+    $("#color_group_select").html("");
+    this.data["STUDENTS"][0]["RECORDS"][0]["GROUPS"].forEach(function(group, i){
+      for (var key in group){
+        $("#color_group_select").append('<option value="'+i+'">'+key+'</option>');
+      }
+    });
+
+    $("#color_group_select option").first().prop('selected',true);
+
+    this.build();
+  }
+
+  RibbonGraph.prototype = {
+    find_node_recursive : function(name, type, time){
+      var existing_node = this.find_toplevel_node(name[0], type[0], time);
+
+      if (existing_node){
+        if (name.length > 1){
+          return existing_node.find_subnode_recursive(name.slice(1), type.slice(1), time);
+        }
+
+        return existing_node;
+      }
+
+      return null;
+    },
+
+    find_toplevel_node : function(name, type, time){
+      for(var i = 0, len = this.nodes.length; i < len; i++) {
+        if (this.nodes[i].name === name
+             && this.nodes[i].time === time
+             && this.nodes[i].type === type){
+          return this.nodes[i];
+        }
+      }
+      return null;
+    },
+
+    find_link : function(src_node, tgt_node){
+      for(var i = 0, len = this.links.length; i < len; i++) {
+        if (this.links[i].source === src_node && this.links[i].target === tgt_node)
+          return this.links[i];
+      }
+      return null;
+    },
+
+    create_top_level_node : function(name, type, time){
+      var new_node = new RibbonNode(name,type,time,null,this);
+      this.nodes.push(new_node);
+      return new_node;
+    },
+
+    //name and type params are arrays describing the name and type of each node from the top level down to the leaf.  Time is the same for all.
+    create_leaf_node : function(name, type, time){
+
+      var existing_node = this.find_toplevel_node(name[0], type[0], time);
+
+      if (existing_node){
+        existing_node.value++;
+        if (name.length > 1){
+          existing_node.add_or_increment_subnode(name.slice(1), type.slice(1), time);
+        }
+
+        return existing_node;
+      } else {
+        var new_node = new RibbonNode(name[0], type[0], time, null, this);
+        new_node.value++;
+        new_node.showing = true;
+        if (name.length > 1){
+          new_node.add_or_increment_subnode(name.slice(1), type.slice(1), time);
+        }
+        this.nodes.push(new_node);
+
+        return new_node;
+      }
+
+    },
+
+    //create_link : function(src_node, tgt_node){ 
+    create_link : function(src_node, tgt_node, count){  
+    //added count
+      var existing_link = this.find_link(src_node, tgt_node);
+
+      if (existing_link == null){
+        var new_link = new RibbonLink(src_node, tgt_node, count);
+        //var new_link = new RibbonLink(src_node, tgt_node);
+        this.links.push(new_link);
+        return new_link;
+      } else {
+        existing_link.value+=parseInt(count);
+      }
+      return null;
+    },
+
+
+    create_or_increment_link_and_parent_node_links : function(src_node, tgt_node,count){
+    //create_or_increment_link_and_parent_node_links : function(src_node, tgt_node){
+      var source = src_node;
+      while (source != null){
+        var target = tgt_node;
+        while(target != null){
+          //var new_link = this.create_link(source,target);
+          var new_link = this.create_link(source,target,count);  
+          //added count
+          if (new_link != null){
+            source.sourceLinks.push(new_link);
+            target.targetLinks.push(new_link);
+          }
+          target = target.parent_node;
+        }
+        source = source.parent_node;
+      }
+    },
+
+    //Returns the number of students in the starting cohort defined by the earliest selected time.
+    get_total_students_in_graph : function(){
+      var time = this.views[0];
+      var total = 0;
+      this.nodes.forEach(function(n){
+        if (n.time == time){
+          total += n.value;
+        }
+      });
+      console.log(total);
+      return total;
+
+    },
+
+    //Sets the showing attribute of links if both source and target nodes are showing and the link has a non-zero value
+    update_link_showing : function(){
+      this.links.forEach(function(l){
+        if (l.source.is_showing() && l.target.is_showing()
+            && l.is_nonzero())
+          l.showing = true;
+        else
+          l.showing = false;
+      });
+    },
+
+    to_json : function(){
+      return JSON.stringify(this);
+    },
+
+    // Converts to the format required by d3.sankey.  Takes the nested node array and flattens it based on what nodes are expanded and non-zero.
+    // Only includes links that are connected to a non-zero expanded node.
+    to_sankey_object : function(){
+      this.update_link_showing();
+
+      var flat_object = {
+          nodes : [],
+          links : this.links.filter(this.is_nonzero).filter(this.is_showing)
+      }
+
+      var nonzero_toplevel_nodes = this.nodes.filter(this.is_nonzero);
+
+      nonzero_toplevel_nodes.forEach(function(n){
+        flat_object.nodes.push(n.get_object_or_children());
+      });
+      flat_object.nodes = this.flatten_array(flat_object.nodes);
+
+
+      return flat_object;//JSON.stringify(this);
+    },
+
+    to_sankey_json : function(){
+      return JSON.stringify(this.to_sankey_object);
+    },
+
+    is_showing : function(link_or_node){
+      return link_or_node.showing;
+    },
+
+    is_selected : function(link_or_node){
+      return link_or_node.selected;
+    },
+
+    is_nonzero : function(link_or_node){
+      return link_or_node.value > 0;
+    },
+
+
+
+    end_of_nth_year_from_fall_term : function(term,n){
+      return (Math.floor(term/100)+n)*100+3
+    },
+
+    reset_node_and_link_values : function(){
+      this.links.forEach(function(l){
+        l.reset_value();
+      });
+    },
+
+    select_none : function(){
+      this.nodes.forEach(function(n){
+        n.set_selection(false);
+      });
+    },
+
+    array_equal : function(a, b){
+      var i = Math.max(a.length, b.length, 1);
+      while(i-- >= 0 && a[i] === b[i]);
+      return (i === -2);
+    },
+
+    student_in_starting_cohort: function(student){
+      return (student["RECORDS"][0]["TIME"]+"") == this.views[0];
+    },
+
+    create_or_increment_nodes_from_data: function(student){
+      var graph = this;
+
+      var records = [];
+
+      graph.views.forEach(function(view_time){
+        var record = student["RECORDS"].filter(function(r){ return (""+r["TIME"]) == view_time })[0];
+
+        if (record == undefined){
+          graph.not_specified_count[view_time]++;
+
+          record = {"TIME": view_time, "GROUPS":[{"undefined": "undefined"}]}
+
+          student["RECORDS"] << record
+        } else {
+
+        }
+        records.push(record);
+      });
+
+
+      var last_node = null;
+
+      records.forEach(function(record){
+        var original_group_types = record["GROUPS"].map(function(g){ return Object.keys(g)[0] });
+        var original_group_vals = record["GROUPS"].map(function(g){ return g[Object.keys(g)[0]] });
+
+        var reordered_group_types = $("#included_groups div").map(function(index) {
+          return this.id.split("-")[1];
+        });
+
+        var reordered_group_vals = [];
+
+        reordered_group_types.each(function(index){
+          var original_types_index = original_group_types.indexOf(reordered_group_types[index])
+
+          if (original_types_index != -1){
+            reordered_group_vals.push(original_group_vals[original_types_index]);
+          } else {
+            reordered_group_vals.push(student["DEMOGRAPHICS"][reordered_group_types[index]]);
+          }
+        });
+
+        graph.create_leaf_node(
+          reordered_group_vals,
+          reordered_group_types,
+          record["TIME"]
+        );
+
+        var new_node = graph.find_node_recursive(
+          reordered_group_vals,
+          reordered_group_types,
+          record["TIME"]
+        );
+
+        if (last_node != null){
+          graph.create_or_increment_link_and_parent_node_links(last_node, new_node,parseInt(student["COUNT"]));
+        }
+
+        last_node = new_node;
+      });
+
+    },
+
+    build : function(){
+      var graph = this;
+      var data = graph.data;
+      var filtered_data = graph.filter.filter_data();
+      var filtered_starting_cohort = {
+        "STUDENTS" : filtered_data["STUDENTS"].filter($.proxy(this.student_in_starting_cohort, this))
+      }
+
+      var unfiltered_starting_cohort_count = 0;//added
+      var unfiltered_starting_cohort = data["STUDENTS"].filter($.proxy(this.student_in_starting_cohort, this));
+
+
+      unfiltered_starting_cohort.forEach(function(student){
+        unfiltered_starting_cohort_count += parseInt(student["COUNT"]);
+      });
+
+      graph.raw_data_total = 0;
+      data["STUDENTS"].forEach(function(student){
+        graph.raw_data_total += parseInt(student["COUNT"]);
+      });
+
+      graph.filtered_starting_cohort_count = 0;
+      filtered_starting_cohort["STUDENTS"].forEach(function(student){
+        graph.filtered_starting_cohort_count += parseInt(student["COUNT"]);
+      });
+
+      graph.not_specified_count = {};
+
+      graph.views.forEach(function(view_time){
+        graph.not_specified_count[view_time] = 0;
+      });
+
+      //Where the real work happens
+      filtered_starting_cohort["STUDENTS"].forEach($.proxy(this.create_or_increment_nodes_from_data,this));
+
+      //Print helpful information above the graph.
+      var filter_desc = "<p>The raw data contains "+graph.raw_data_total+" people.</p>\n";
+      filter_desc += graph.filter.isolate_description();
+      filter_desc += "<p>The unfiltered starting cohort from "+graph.views[0]+" contains "+unfiltered_starting_cohort_count+" people.</p>\n";
+      filter_desc += "<p>Filtering based on the options in the menu to the left</p>";
+      filter_desc += "<p>The filtered cohort contains "+graph.filtered_starting_cohort_count+" people.</p>";
+
+      for (var key in graph.not_specified_count) {
+        if (graph.not_specified_count[key] > 0)
+          filter_desc += "<p>"+graph.not_specified_count[key]+" people had an unspecified record during "+key+"</p>\n";
+      }
+
+      $("#vis_filter_desc").html(filter_desc);
+
+      $(".remove-isolate").off("click").on("click",function(){
+        var isolate_index = $(this).attr("id").split('-')[2];
+
+        graph.filter.undo_isolate_by_group(isolate_index);
+
+        ribbon_controller.recalculate_and_redraw();
+      });
+
+      graph.update_link_showing();
+
+    },
+
+    /*
+     * @name flatten_array
+     * @description flattens multi-dimension array into one-dimension array
+     * useful for manipulating function arguments like flattenArray(arguments)
+     * @usage flattenArray(arr)
+     * eg.
+     * [1, 2]                => [1, 2]
+     * [1, [[[[[[2]]]]]]]    => [1, 2]
+     * [1,[2,3],[[[[4]]],5]] => [1, 2, 3, 4, 5]
+     *
+     * @param {arr} Array to flatten
+     * @return {Array} Array, one-dimension array
+     */
+    flatten_array : function(arr){
+      var r = [];
+
+      while (!this.array_equal(r, arr)) {
+          r = arr;
+          arr = [].concat.apply([], arr);
+      }
+      return arr;
+    },
+
+    get_times_from_data: function(){
+      var times = this.times;
+
+      var uncertain_times = {};
+
+      //Find the longest record and push all times. Assumes the longest timeline will be the most complete
+      var longest_timeline = 0;
+      var record_with_longest_timeline = null;
+      this.data["STUDENTS"].forEach(function(student, student_index){
+        if (student["RECORDS"].length > longest_timeline){
+          record_with_longest_timeline = student["RECORDS"];
+          longest_timeline = student["RECORDS"].length;
+        }
+      });
+
+      record_with_longest_timeline.forEach(function(record){
+        times.push(record["TIME"]);
+      });
+
+      this.data["STUDENTS"].forEach(function(student, student_index){
+        student["RECORDS"].forEach(function(record, i, records){
+          if (times.indexOf(record["TIME"]) == -1){
+            var current_time = record["TIME"];
+            var last_time = (records[i-1] != undefined ? records[i-1]["TIME"] : undefined);
+            var next_time = (records[i+1] != undefined ? records[i+1]["TIME"] : undefined);
+
+            var index_of_last_time_in_times = times.indexOf(last_time);
+            var index_of_next_time_in_times = times.indexOf(next_time);
+
+            if (index_of_next_time_in_times == -1) index_of_next_time_in_times = times.length;
+
+            if (index_of_next_time_in_times - index_of_last_time_in_times == 1){ //times in master times array are adjacent so we can insert the new time
+              times.splice(index_of_next_time_in_times, 0, current_time);
+
+              if (current_time in uncertain_times) delete uncertain_times[current_time];  //Remove time from uncertain hash if it has been successfully placed.
+
+              //Try to place uncertain times now that another time has been added
+              var pushed = true;
+              while(pushed) {
+                pushed = false;
+                for (var key in uncertain_times){
+                  var uncertain_last_index_in_times = times.indexOf(uncertain_times[key]["last"]);
+                  var uncertain_next_index_in_times = times.indexOf(uncertain_times[key]["next"]);
+
+                  if (uncertain_next_index_in_times == -1) uncertain_next_index_in_times = times.length;
+
+                  if (uncertain_next_index_in_times - uncertain_last_index_in_times == 1){
+                    times.splice(uncertain_next_index_in_times, 0, key);
+                    delete uncertain_times[key];
+                    pushed = true;
+                  }
+                }
+              }
+            } else {
+              uncertain_times[current_time] = {last: last_time, next: next_time}
+            }
+          }
+        });
+      });
+
+      //Try to place uncertain times one more time
+      var pushed = true;
+      while(pushed) {
+        pushed = false;
+        for (var key in uncertain_times){
+          var uncertain_last_index_in_times = times.indexOf(uncertain_times[key]["last"]);
+          var uncertain_next_index_in_times = times.indexOf(uncertain_times[key]["next"]);
+
+          if (uncertain_next_index_in_times == -1) uncertain_next_index_in_times = times.length;
+
+          if (uncertain_next_index_in_times - uncertain_last_index_in_times == 1){
+            times.splice(uncertain_next_index_in_times, 0, key);
+            delete uncertain_times[key];
+            pushed = true;
+          }
+        }
+      }
+
+      //Just put them at the end for now
+      for (var key in uncertain_times){
+        times.push(key);
+      }
+    }
+  }

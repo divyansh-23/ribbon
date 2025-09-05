@@ -1,0 +1,32 @@
+//Aggregate Data format
+// records array should be in chronological order
+// the keys nested under the groups object can be custom to an institution
+{
+    "records": [
+        {
+            "time": "Fall 2014",
+            "groups": {
+                "Enrolled":{
+                    "BIOSC":{
+                        "BBMI":300,
+                        "BBOC":500
+                    }
+                }
+
+            }
+        },
+
+        {
+            "time": "Fall 2018",
+            "groups": {
+                "Graduated":{
+                    "BIOSC":{
+                        "BBMI":300,
+                        "BBOC":500
+                    }
+                }
+
+            }
+        }
+    ]
+}

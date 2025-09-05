@@ -1,0 +1,30 @@
+// Place all the styles related to the Users controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+
+.role-selected {
+  font-weight: bold;
+}
+
+#role-messages p{
+  color:red;
+
+}
+
+#admin-name{
+  font-weight:bold;
+}
+
+#not-approved-name{
+  color: red;
+}
+
+#user_submit{
+  width:200px;
+  margin: 10px 0px 10px 0px;
+
+}
+
+#shared_diagrams_table {
+  width: 600px;
+}

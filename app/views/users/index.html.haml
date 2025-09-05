@@ -1,0 +1,84 @@
+#header
+  %p
+    You are:
+    %a{ href: user_path(current_user) }
+      = current_user.name
+  .slicknav-container
+    .slicknav
+    %ul#menu{ style: "display:none;" }
+      %li= link_to 'Home', root_path
+      - if policy(User).index?
+        %li= link_to 'Users', users_path
+      - if policy(Diagram).create?
+        %li
+          Diagrams
+          %ul
+            %li= link_to 'List', diagrams_path
+            %li= link_to 'Create', new_diagram_path
+      - else
+        %li= link_to 'Diagrams', diagrams_path
+      - if current_user.super_admin
+        %li= link_to 'Institutions', institutions_path
+
+      - if current_user.has_role?('institution-admin') || current_user.super_admin
+        %li= link_to 'Download User Logs (CSV)', export_user_logs_path, { target: "_blank" }
+        %li= link_to 'Download User Info (CSV)', export_all_users_path, class: 'btn btn-primary', target: '_blank'
+
+      %li= link_to 'Sign out', destroy_user_session_path, method: :delete
+
+  %h1#site_title
+    = link_to "Ribbon Tool", root_path
+
+%h2 Listing users
+%p Users with <strong>bold</strong> names are admins.
+%p Users with <strong style="color:red;">red</strong> names are waiting for approval from an admin.
+
+Show:
+= link_to "All Users", :action => "index"
+- if policy(current_user).approve?
+  |
+  = link_to "Users awaiting approval", :action => "index", :approved => "false"
+  |
+  = link_to "Export List of Users Awaiting Approval", :action => "export_users_awaiting_approval"
+
+%table.datatable.responsive.no-wrap
+  %thead
+    %tr
+      %th Name
+      %th Email
+      %th{ style: "width: 10%; white-space: normal;" } Department
+      %th Roles
+      - if current_user.has_role?('institution-admin') || current_user.super_admin?
+        %th Last Login
+      %th
+      - if policy(current_user).edit?
+        %th
+      - if policy(current_user).destroy?
+        %th
+  %tbody
+    - @users.each do |user|
+      %tr
+        %td
+          - if user.approved == false
+            #not-approved-name= user.name
+          - elsif user.has_role? 'institution-admin'
+            #admin-name= user.name
+          - else
+            = user.name
+        %td= user.email
+        %td{ style: "white-space: normal;" }= user.department.present? ? user.department : 'N/A'
+        %td
+          - if user.role_list.empty?
+            No Roles Assigned
+          - else
+            - user.role_list.each do |role|
+              = role
+              %br
+        - if current_user.has_role?('institution-admin') || current_user.super_admin?
+          %td= user.last_sign_in_at ? user.last_sign_in_at.in_time_zone("Eastern Time (US & Canada)").strftime("%Y-%m-%d %H:%M") : 'Never'
+        %td= link_to 'Show', user
+        - if policy(current_user).edit?
+          %td= link_to 'Edit', edit_user_path(user)
+        - if policy(current_user).destroy?
+          %td= link_to 'Destroy', user, :method => :delete, :data => { :confirm => 'Are you sure?' }
+

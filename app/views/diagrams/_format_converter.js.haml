@@ -1,0 +1,143 @@
+:javascript
+  function RibbonFormatConverter(format){
+    this.format = format;
+    this.canonical_format = "json"  //This is format all the others convert to
+
+
+    this.handlers = {
+      "json": {
+        "convert": function(data_in){
+          if (JSON.parse(data_in[0]["data"])["STUDENTS"] == undefined ){
+            alert("Your data does not have a top level \"STUDENTS\" attribute. It will not work :(");
+
+          }
+          var data_out = JSON.parse(data_in[0]["data"]);
+
+          data_out["STUDENTS"].forEach(function(student){
+             if(!student.hasOwnProperty("COUNT")){
+              student["COUNT"] = 1;
+             }
+          });
+
+          return data_out;
+        }
+      },
+
+      "csv-aggregate": {
+        "convert": function(data_in){
+          var data_out_lookup = {};
+          var data_out = { "STUDENTS": [] };
+
+          data_in.forEach(function(d){
+
+            var data_arrays = null;
+
+            if(d.data.match(/[\n]/g) == null){
+              data_arrays = $.csv.toArrays(d.data.replace(/[\r|\r\n]/g, "\n"));
+            } else {
+              data_arrays = $.csv.toArrays(d.data);
+            }
+
+            data_arrays.forEach(function(row,r_ind){
+              if(r_ind > 0 ){
+
+                var paths = row[0].split('--');
+                var path = {"RECORDS":[],"COUNT":row[1]};
+
+
+                for(var i = 0;i < paths.length;i++){
+
+                  var cells=paths[i].split('-');
+                  var new_record={"TIME":cells[0],"GROUPS":[]};
+
+                  for(var j=1;j<cells.length;j++){
+                    var new_group = {};
+                    new_group["group_level_"+j] = cells[j];
+                    new_record["GROUPS"].push(new_group);
+                  }
+
+                  path["RECORDS"].push(new_record);
+                }
+
+                data_out["STUDENTS"].push(path);
+              }
+            });
+            console.log(data_out);
+          });
+          return data_out;
+        }
+      },
+
+      "csv": {
+        "convert": function(data_in){
+          console.log(data_in);
+
+          var data_out_lookup = {};
+          var data_out = { "STUDENTS": [] };
+
+
+          data_in.forEach(function(d,i){
+            var data_arrays = null;
+
+            if(d.data.match(/[\n]/g) == null){
+              data_arrays = $.csv.toArrays(d.data.replace(/[\r|\r\n]/g, "\n"));
+            } else {
+              data_arrays = $.csv.toArrays(d.data);
+            }
+
+            console.log(data_arrays);
+
+            headers = data_arrays[0];
+
+            data_arrays.forEach(function(row, r_ind){
+              if (r_ind > 0){
+                var student = null;
+                var id = row[0];
+
+                if (data_out_lookup[id] === undefined){
+                  var new_student = {"ID": id, "DEMOGRAPHICS":{}, "RECORDS":[], "COUNT": 1}
+                  data_out["STUDENTS"].push(new_student);
+                  data_out_lookup[id] = data_out["STUDENTS"].length - 1;
+                }
+
+                student = data_out["STUDENTS"][data_out_lookup[id]];
+
+                if (i == 0){
+
+                  var new_record = {"TIME":null, "GROUPS":[]};
+                  row.forEach(function(cell, c_ind){
+                    if (c_ind == 1){
+                      new_record["TIME"] = cell;
+                    } else if (c_ind > 1){
+                      var new_group = {};
+                      new_group[headers[c_ind]] = cell;
+                      new_record["GROUPS"].push(new_group);
+                    }
+                  });
+                  student["RECORDS"].push(new_record);
+
+                } else if (i == 1){
+
+                  row.forEach(function(cell, c_ind){
+                    if (c_ind > 0){
+                      student["DEMOGRAPHICS"][headers[c_ind]] = cell;
+                      data_out["STUDENTS"][data_out_lookup[id]] = student;
+                    }
+                  });
+                }
+              }
+            });
+          });
+
+          console.log(data_out);
+          return data_out;
+        }
+      }
+    };
+  };
+
+  RibbonFormatConverter.prototype = {
+    "convert": function(data_in){
+      return this.handlers[this.format]["convert"](data_in);
+    }
+  };

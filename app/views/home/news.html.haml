@@ -1,0 +1,5 @@
+%h2 News Archive
+.indent
+  = link_to "Back to Home", home_path
+  - @announcements.each do |a|
+    = render :partial => "announcement", locals: {announcement: a}

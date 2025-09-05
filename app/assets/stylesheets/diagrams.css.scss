@@ -1,0 +1,117 @@
+// Place all the styles related to the Diagrams controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+
+/*
+*= require d3-context-menu
+*/
+
+#control_container{
+  position: absolute;
+  border: 1px solid black;
+  background-color: white;
+  display: none;
+}
+
+#create_diagram_link {
+  margin: 15px 0px 15px 0px;
+}
+
+.index-nav-links{
+  margin: 15px 0px 15px 0px;
+}
+
+#controls{
+  padding: 10px;
+}
+
+.diagram_controls{
+  width: 175px;
+  max-width: 175px;
+}
+
+#filters{
+  font-weight: bold;
+}
+
+#ribbon_diagram_container{
+  text-align:center;
+}
+
+
+
+#control_toggle_container{
+  padding: 4px;
+  padding-bottom: 2px;
+  cursor: pointer;
+}
+
+.filter-form-item{
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  /*border-bottom: 1px solid black;*/
+
+  label {
+    margin-bottom: 3px;
+  }
+}
+
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+
+.tip{
+  background-color: white;
+  border: 1px solid black;
+  padding: 5px;
+
+}
+
+
+.tip_text{
+  margin:0px;
+
+}
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .1;
+}
+
+.filter-label {
+  color: darkred;
+}
+
+.page-content{
+  width: 98%;
+}
+
+.group_list{
+  min-height: 100px;
+  border: 1px solid black;
+}
+
+.group_list > div{
+  margin: 5px;
+}
+
+.group_list_hovered{
+  font-weight: bold;
+}
+
+#menu_toggle_instructions {
+  display:inline;
+}
+
+.diagram_index_nav {
+  margin: 0px;
+  margin-bottom:10px;
+  margin-top:10px;
+}

@@ -1,0 +1,75 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+<div class="alert alert-info" role="alert">
+  <strong>If you have already registered yourself by signing up on the Ribbon app, then kindly wait for the approval from Dr. Marco Molinaro.</strong> <br> If you have any questions, please contact Dr. Marco Molinaro at <a href="mailto:marcom@umd.edu">marcom@umd.edu</a>.
+</div>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<h2 class="mb-4">Sign up</h2>
+
+
+<%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "needs-validation", novalidate: true }) do |f| %>
+  <%= devise_error_messages! %>
+
+  <div class="form-group">
+    <%= f.label :name, class: 'form-label' %>
+    <%= f.text_field :name, autofocus: true, class: 'form-control' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :email, class: 'form-label' %>
+    <%= f.email_field :email, autofocus: true, class: 'form-control' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :umd_directory_id, "UMD Directory ID", class: 'form-label' %>
+    <%= f.text_field :username, autofocus: true, class: 'form-control', placeholder: 'Enter your UMD Directory ID here' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :UMD_UID, "UMD UID Number", class: 'form-label' %>
+    <%= f.text_field :uid_number, autofocus: true, class: 'form-control', placeholder: 'Enter your UMD UID Number here' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :title, class: 'form-label' %>
+    <%= f.text_field :title, autofocus: true, class: 'form-control' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :department, class: 'form-label' %>
+    <%= f.text_field :department, autofocus: true, class: 'form-control' %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :why_give_access, "Briefly describe, why would you like to access?", class: 'form-label' %>
+    <%= f.text_area :why_give_access, autofocus: true, class: 'form-control', rows: 5 %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :how_did_you_learn_about, "How did you learn about this tool?", class: 'form-label' %>
+    <%= f.text_field :how_did_you_learn_about, autofocus: true, class: 'form-control' %>
+  </div>
+
+  <%= f.hidden_field :institution_id, value: 1 %>
+
+  <div class="actions">
+    <%= f.submit "Sign up", class: 'btn btn-primary' %>
+  </div>
+
+<% end %>
+<script>
+$(document).ready(function() {
+    $('form').submit(function() {
+        // Check if there is any content inside the #notice element
+        if ($('#notice').text().trim().length > 0) {
+            // Hide the form and other elements you want to hide
+            $('.alert').hide();
+            $('h2').hide();
+            $('.form-group').hide();
+            $('.actions').hide();
+        }
+    });
+});
+</script>

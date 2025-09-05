@@ -1,0 +1,175 @@
+= form_for @diagram do |f|
+  - if @diagram.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@diagram.errors.count, "error")} prohibited this diagram from being saved:"
+      %ul
+        - @diagram.errors.full_messages.each do |msg|
+          %li= msg
+
+  .indent
+    .field
+      = f.label :name, "Name: "
+      = f.text_field :name
+
+    .field
+      = f.label :category, "Category: "
+      = f.text_field :category
+
+    .field
+      = f.label :description, "Description: "
+      = f.text_area :description
+
+  - if params[:action] == "edit"
+    %h3 Replace Data Files (if left blank existing file will be kept):
+  - elsif params[:action] == "new"
+    %h3 Upload Data Files):
+  .indent
+    .field
+      = f.label :data_format, "Data Format: "
+      = f.select :data_format, options_for_select(["json", "csv", "csv-aggregate"], :selected => @diagram.data_format || "json")
+      -#
+      = link_to "Format Description", {}, :id => "format_description_link"
+
+    .field#file_upload_container
+      %p#data_format_explanation{:style => "color: red;"}
+
+
+      = f.file_field :data_files, multiple: true
+      -#
+      -# = f.fields_for :data_files do |builder|
+      -#   = render "data_file_form", :f => builder
+
+    .field
+      = f.label :local, "Keep my data local:"
+      = f.check_box :local
+      %span{:style => "margin-left: 10px; color:red"} If you select this option, no data will be sent to the UMD ribbon server. You will be prompted to select a file/s on your local machine each time you open a diagram.
+
+  %h3 Tags:
+  .indent
+    .field
+      = f.label :tag_list, "Tags:"
+      = f.text_field :tag_list
+      .indent
+        %p Please enter one or more tags separated by commas.  Tags help you organize your diagrams and help the developers of the ribbon tool determine how the community is using it.
+
+
+  %h3 Sharing and Permissions:
+  .indent
+    .field
+      = f.label :downloadable, "Allow users to download data file: "
+      = f.check_box :downloadable
+      .indent
+        %p{:style => "color:red;"} For a user to download data they must have the 'diagram-download' role, the diagram must be downloadable, and the diagram must be shared with them.
+
+    - if current_user.super_admin
+      .field
+        = f.label :share_with_all_institutions, "SUPER ADMIN ONLY -- Share this diagram automatically with every user in GORP: "
+        = f.check_box :share_with_all_institutions
+      .indent
+        %h3 - OR -
+
+    .field
+      = f.label :share_with_all, "Share this diagram with everyone at my institution and any new users automatically: "
+      = f.check_box :share_with_all
+
+    .field#share_with
+      .indent
+        %h3 - OR -
+      = label_tag :user_diagrams, "Share With:"
+      - source_for_users = (params[:action] == "new" ? current_user : @diagram)
+      = select_tag :user_diagrams,
+          options_for_select(source_for_users.institution.users.select{|u| u != current_user}.map{|u| [u.name, u.id  ]},
+                              :selected => @diagram.users.map(&:id)),
+          {:multiple => true}
+
+  .actions
+    = f.submit 'Save', :id => "diagram_submit"
+
+:javascript
+  //TODO: Hide second file field and set labels according to data_format.  Show second file field and change labels when data_format is changed.\
+  window.onload = function(){
+    var format_description_links = {
+      "json": "#{asset_path("json_format.pdf")}",
+      "csv": "#{asset_path("csv_format.pdf")}",
+      "csv-aggregate": "#{asset_path("csv_aggregate_format.pdf")}"
+    };
+
+    $("#diagram_data_format").change(function(){
+
+      var format = $(this).val();
+      console.log(format);
+      var explanation = $("#data_format_explanation");
+
+      if (format === "csv") {
+        explanation.html("The CSV format accepts two files both selected using the file input below. <b>The order of the files matters.</b> The <strong>first</strong> selected file will be used as the records file (statuses at different times) and the <strong>second</strong> will be used for any demographics which generate filters in the chart menu. We suggest naming the records <b>'1_examplerecordfilename'</b> and <b>'2_exampledemographicsfilename'</b> to remember to select them in proper order.");
+      } else if (format === "csv-aggregate") {
+        explanation.html("This aggregate csv format enhances privacy but you lose the ability to dynamically filter. See description in Format Description link above.");
+      } else if (format === "json") {
+        explanation.html("");
+      }
+
+      $("#format_description_link").attr("href", format_description_links[format]);
+      $("#diagram_data_files_attributes_1_data_file").val("");
+      $("#diagram_data_files_attributes_0_data_file").val("");
+
+      if (format === "json" || format === "csv-aggregate") {
+        $("label[for='diagram_data_files_attributes_0_data_file']").text("Data File: ");
+        $("#file_field_1").hide();
+
+        $("#diagram_data_files_attributes_0_name").val("data");
+        $("#diagram_data_files_attributes_1_name").val("");
+
+      } else if (format === "csv"){
+        $("label[for='diagram_data_files_attributes_0_data_file']").text("Record File: ");
+        $("label[for='diagram_data_files_attributes_1_data_file']").text("Demographic File (Optional): ");
+        $("#file_field_1").show();
+
+        $("#diagram_data_files_attributes_0_name").val("records");
+        $("#diagram_data_files_attributes_1_name").val("demographics");
+      }
+    });
+
+    $("#diagram_data_format").change();
+
+    $("#diagram_submit").click(function(e){
+      var format = $("#diagram_data_format").val();
+      var local = $("#diagram_local").prop('checked');
+
+      var action = '#{params[:action]}';
+      if (action != "edit"){
+        if (!local){
+          if (format === "json" && $("#diagram_data_files_attributes_0_data_file").val() === "") {
+            alert("You must choose a file.");
+            return false;
+          } else if (format === "csv" && $("#diagram_data_files_attributes_0_data_file").val() === ""){
+            alert("A records file is required to create a diagram.");
+            e.preventDefault();
+            return false;
+          }
+        }
+      }
+    });
+
+    $("#user_diagrams").select2({
+        width:'240px',
+        allowClear:true
+    });
+
+    $("#diagram_share_with_all").change(function(){
+      if ($(this).prop('checked')) {
+        $("#share_with").hide();
+      } else {
+        $("#share_with").show();
+      }
+    });
+
+    $("#diagram_share_with_all").change();
+
+     $("#diagram_local").change(function(){
+      if ($(this).prop('checked')) {
+        $("#file_upload_container").hide();
+      } else {
+        $("#file_upload_container").show();
+      }
+    });
+  }

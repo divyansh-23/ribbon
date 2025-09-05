@@ -1,0 +1,192 @@
+:javascript
+  function RibbonNode(name, type, time, parent, graph){
+    this.parent_node = parent;
+    this.subnodes = [];
+
+    // These three attributes together should be a unique id for a node.
+    this.name = name;  // Status description OR major code OR discipline code
+    this.time = time;  // starting time, ending_time
+    this.type = type;  // This should be unique to each level of nodes/subnodes (i.e. Status, Discipline, Major)
+
+    this.showing = false;
+    this.selected = false;
+
+    this.sourceLinks = [];
+    this.targetLinks = [];
+
+    this.value = 0;
+
+    this.graph = graph;
+  }
+
+  RibbonNode.prototype = {
+    add_or_increment_subnode : function(name, type, time){
+      var existing_node = this.find_subnode(name[0], type[0], time);
+
+      if (existing_node){
+        existing_node.value++;
+        if (name.length > 1){
+          existing_node.add_or_increment_subnode(name.slice(1), type.slice(1), time);
+        }
+        return existing_node;
+      } else {
+        var new_node = new RibbonNode(name[0], type[0], time, this, this.graph);
+        new_node.value++;
+        if (name.length > 1){
+          new_node.add_or_increment_subnode(name.slice(1), type.slice(1), time);
+        }
+        this.subnodes.push(new_node);
+
+        return new_node;
+      }
+    },
+
+    find_subnode_recursive : function(name, type, time){
+      var existing_node = this.find_subnode(name[0], type[0], time);
+
+      if (existing_node){
+        if (name.length > 1){
+          return existing_node.find_subnode_recursive(name.slice(1), type.slice(1), time);
+        }
+
+        return existing_node;
+      }
+
+      return null;
+    },
+
+    find_subnode : function(name, type, time){
+      for(var i = 0, len = this.subnodes.length; i < len; i++) {
+        if (this.subnodes[i].name === name
+            && this.subnodes[i].time === time
+            && this.subnodes[i].type === type){
+          return this.subnodes[i];
+        }
+      }
+      return null;
+    },
+
+    add_source_link : function(tgt_node){
+      var new_link = new RibbonLink(this, tgt_node);
+      this.sourceLinks.push(new_link);
+      return new_link;
+    },
+
+    add_target_link : function(src_node){
+      var new_link = new RibbonLink(src_node, this);
+      this.targetLinks.push(new_link);
+      return new_link;
+    },
+
+    //Moved to view object
+    //Shows subnodes 1 level down and hides this node
+    expand : function(){
+      this.showing = false;
+      for(var i = 0, len = this.subnodes.length; i < len; i++) {
+        this.subnodes[i].showing = true;
+      }
+
+      this.graph.update_link_showing();
+      return null;
+    },
+
+    //Hides subnodes recursively and shows this node
+    collapse: function(is_subnode){
+      //this.showing = true;
+      for(var i = 0, len = this.subnodes.length; i < len; i++) {
+        this.subnodes[i].collapse(true);
+      }
+
+      if (is_subnode) this.showing = false;
+      else this.showing = true;        //Happens when is_subnode is false or null so the top level call can be just "node.collapse()"
+
+      this.graph.update_link_showing();
+
+      return null;
+    },
+
+    increment_value : function(){
+      this.value++;
+
+      if (this.parent != null)
+        this.parent.increment_value();
+    },
+
+    toggle_selection : function(){
+      this.set_selection(!this.selected);
+    },
+
+    set_selection: function(val){
+      this.selected = val;
+
+      this.subnodes.forEach(function(subnode){
+        subnode.set_selection(val);
+      });
+
+      this.sourceLinks.forEach(function(sourceLink){
+        sourceLink.selected = val;
+      });
+
+      this.targetLinks.forEach(function(targetLink){
+        targetLink.selected = val;
+      });
+    },
+
+    is_showing : function(){
+      return this.showing;
+    },
+
+    is_selected : function(){
+      return this.selected;
+    },
+
+    is_nonzero : function(){
+      return this.value > 0;
+    },
+    //End of moved to view objecet
+
+
+    //returns this if the node is showing(collapsed) or returns an array of subnodes if not showing(expanded)
+    get_object_or_children : function(){
+      if (this.is_showing() && this.is_nonzero()) return this;
+      else {
+        var children = [];
+        this.subnodes.forEach(function(s){
+          children.push(s.get_object_or_children());
+        });
+        children = this.graph.flatten_array(children);
+        return children;
+      }
+
+    },
+
+    get_name: function(){
+      var name_missing = (this.name == undefined || this.name == null || this.name == "");
+
+      if (this.parent_node == null)
+        return (name_missing ? "Undefined" : this.name);
+      else
+        return this.parent_node.get_name() + "-" + (name_missing ? "Undefined" : this.name) ;
+    },
+
+    get_unique_name: function(){
+      if (this.parent_node == null)
+        return this.name + "-" + this.time;
+      else
+        return this.parent_node.get_name() + "-" + this.name  ;
+    },
+
+    percent_of_sibling_total: function(){
+      var this_node = this;
+      var sum = 0;
+      if (this.parent_node != null){
+        this.parent_node.subnodes.forEach(function(n){ sum += n.value; })
+      } else {
+        this.graph.nodes.forEach(function(n){
+          if (n.time == this_node.time) sum += n.value;
+        });
+      }
+      return this.value/sum;
+    }
+
+  }

@@ -1,0 +1,2 @@
+class OpenToAllController < ApplicationController
+end

@@ -1,0 +1,86 @@
+- if current_user.approved
+  #header
+    %p
+      You are:
+      %a{ href: user_path(current_user) }
+        = current_user.name
+    .slicknav-container
+      .slicknav
+      %ul#menu{ style: "display:none;" }
+        %li= link_to 'Home', root_path
+        - if policy(User).index?
+          %li= link_to 'Users', users_path
+        - if policy(Diagram).create?
+          %li
+            Diagrams
+            %ul
+              %li= link_to 'List', diagrams_path
+              %li= link_to 'Create', new_diagram_path
+        - else
+          %li= link_to 'Diagrams', diagrams_path
+        - if current_user.super_admin
+          %li= link_to 'Institutions', institutions_path
+
+        - if current_user.has_role?('institution-admin') || current_user.super_admin
+          %li= link_to 'Download User Logs (CSV)', export_user_logs_path, { target: "_blank" }
+
+        %li= link_to 'Sign out', destroy_user_session_path, method: :delete
+
+    %h1#site_title
+      = link_to "Ribbon Tool", root_path
+
+  - if @announcements.length > 0
+    #news
+      %h2 News
+      .indent
+        - @announcements.each do |a|
+          = render :partial => "announcement", locals: {announcement: a}
+        .previous_news= link_to "Previous News", home_news_path
+      %hr
+
+  - if current_user.has_role?("institution-admin")
+    - if current_user.institution.users_awaiting_approval.count > 0
+      %h3 Pending Tasks:
+      .indent#pending_tasks
+        %ul
+          - if current_user.institution.users_awaiting_approval.count > 0
+            %li#pending_approvals
+              %p{:style => "color: salmon;"} The following users are waiting to be approved:
+              .indent
+                %table
+                  - current_user.institution.users_awaiting_approval.each do |user|
+                    %tr
+                      %td= user.name
+                      %td
+                        %a{:href => "mailto:"+user.email}= user.email
+                      %td= link_to 'Edit User To Approve', edit_user_path(user)
+
+  #quick_start
+    %h3 Quick Start:
+    .indent
+      #quick_start_grid
+        .grid-item{:onclick => "window.open('https://drive.google.com/file/d/0B5s6JfQGMZhDRFd1ZkFXMUxMT2s/view');"}
+          .inner-grid= link_to "Read the Manual", "https://drive.google.com/file/d/0B5s6JfQGMZhDRFd1ZkFXMUxMT2s/view"
+        .grid-item{:onclick => "location.href='#{diagrams_path}';"}
+          .inner-grid= link_to "Browse Diagrams", diagrams_path
+        - if policy(Diagram).create?
+          .grid-item{:onclick => "location.href='#{new_diagram_path}';"}
+            .inner-grid= link_to "Create a Diagram", new_diagram_path
+  #browse
+    %h3 Diagram Categories:
+    .indent
+      #diagram_category_grid
+        - @categories.each do |category|
+          .grid-item{:onclick => "location.href='#{diagrams_path(:category => category)}';"}
+            .inner-grid= link_to (category == "" ? "Uncategorized" : category), diagrams_path(:category => category)
+- else
+  %p{:style => "color: red;"} Your account has not been approved by an admin. The admins for your insitution are:
+  .indent
+    %table
+      - current_user.institution.admins.each do |admin|
+        %tr
+          %td= admin.name
+          %td{:style => "padding-left: 10px"}
+            %a{:href => "mailto:"+admin.email}= admin.email
+
+%div{:style => "height:20px;"}

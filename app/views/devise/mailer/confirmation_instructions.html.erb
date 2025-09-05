@@ -1,0 +1,15 @@
+<h2>Hi,</h2>
+
+<p>Thanks for requesting access to the Ribbon Tool!</p>
+
+<p>Before you can get started, you will need to confirm that you really requested access, and an admin will need to approve you.</p>
+
+<p>You can confirm your account email through the link below:</p>
+
+<p><%= link_to 'Confirm my account', confirmation_url(@resource, :confirmation_token => @token) %></p>
+
+<p>An admin has been notified of your request.  Upon approval you will be sent a notification email.</p>
+
+<p style="color:red;">
+    If you recieved this email and did not request an account, please contact matt.steinwachs@iamstem.ucdavis.edu and we'll stop bothering you.
+</p>

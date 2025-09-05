@@ -1,0 +1,19 @@
+== README
+
+SSHing into an EC2 instance:
+
+  cd ignore/
+  ssh -i ribndiag1.pem ubuntu@54.183.174.218
+
+
+Running stuff manually on EC2:
+
+  sudo su deploy
+  cd /srv/www/ribbon_diagram/current
+  bundle exec rake db:migrate
+
+Fixing PK sequences getting messed up:
+  sudo su deploy
+  cd /srv/www/ribbon_diagram/current
+  bundle exec rails c
+  ActiveRecord::Base.connection.tables.each { |t|     ActiveRecord::Base.connection.reset_pk_sequence!(t) }

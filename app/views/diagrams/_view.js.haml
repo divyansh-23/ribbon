@@ -1,0 +1,72 @@
+:javascript
+  function RibbonView(graph, initial_times){
+    this.graph = graph;
+    this.views = {};
+
+    initial_times.forEach(function(time){
+      this.views[time] = [];
+    });
+
+
+  }
+
+  RibbonView.prototype = {
+    //Shows subnodes 1 level down and hides this node
+    expand_node : function(node){
+      this.showing = false;
+      for(var i = 0, len = this.subnodes.length; i < len; i++) {
+        this.subnodes[i].showing = true;
+      }
+
+      this.graph.update_link_showing();
+      return null;
+    },
+
+    //Hides subnodes recursively and shows this node
+    collapse_node: function(node, is_subnode){
+      //this.showing = true;
+      for(var i = 0, len = this.subnodes.length; i < len; i++) {
+        this.subnodes[i].collapse(true);
+      }
+
+      if (is_subnode) this.showing = false;
+      else this.showing = true;        //Happens when is_subnode is false or null so the top level call can be just "node.collapse()"
+
+      this.graph.update_link_showing();
+
+      return null;
+    },
+
+    toggle_node_selection : function(node){
+      this.set_selection(!this.selected);
+    },
+
+    set_node_selection: function(node, val){
+      this.selected = val;
+
+      this.subnodes.forEach(function(subnode){
+        subnode.set_selection(val);
+      });
+
+      this.sourceLinks.forEach(function(sourceLink){
+        sourceLink.selected = val;
+      });
+
+      this.targetLinks.forEach(function(targetLink){
+        targetLink.selected = val;
+      });
+    },
+
+    is_node_showing : function(node){
+      return this.showing;
+    },
+
+    is_node_selected : function(node){
+      return this.selected;
+    },
+
+    is_node_nonzero : function(node){
+      return this.value > 0;
+    }
+
+  }

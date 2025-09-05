@@ -1,0 +1,27 @@
+%p
+  %b Name:
+  = @institution.name
+
+%table.datatable.responsive.no-wrap
+  %thead
+    %tr
+      %th Name
+      %th Email
+      %th Roles
+  %tbody
+    - @institution.users.each do |user|
+      %tr
+        %td= link_to user.name, user
+        %td= user.email
+        %td
+          - if user.role_list.empty?
+            No Roles Assigned
+          - else
+            - user.role_list.each do |role|
+              = role
+              %br
+
+= link_to 'Edit', edit_institution_path(@institution)
+\|
+= link_to 'Back', institutions_path
+

@@ -1,0 +1,67 @@
+#header
+  %p
+    You are:
+    %a{ href: user_path(current_user) }
+      = current_user.name
+  .slicknav-container
+    .slicknav
+    %ul#menu{ style: "display:none;" }
+      %li= link_to 'Home', root_path
+      - if policy(User).index?
+        %li= link_to 'Users', users_path
+      - if policy(Diagram).create?
+        %li
+          Diagrams
+          %ul
+            %li= link_to 'List', diagrams_path
+            %li= link_to 'Create', new_diagram_path
+      - else
+        %li= link_to 'Diagrams', diagrams_path
+      - if current_user.super_admin?
+        %li= link_to 'Institutions', institutions_path
+      %li= link_to 'Sign out', destroy_user_session_path, method: :delete
+
+  %h1#site_title
+    = link_to "Ribbon Tool", root_path
+
+%p
+  %b Name:
+  = @user.name
+%p
+  %b Email:
+  = @user.email
+%p
+  %b Umd Directory Username:
+  = @user.username
+%p
+  %b UMD Directory ID Number:
+  = @user.uid_number
+%p
+  %b Title:
+  = @user.title
+%p
+  %b Department:
+  = @user.department
+
+- if policy(current_user).set_roles?
+  %p
+    %b Roles:
+  %ul
+    - @user.roles.each do |role|
+      %li= role
+
+%p
+  %b Why did they want the access?
+  = @user.why_give_access
+%p
+  %b How did they learn about this tool:
+  = @user.how_did_you_learn_about
+
+- if current_user.has_role?('institution-admin') || current_user.super_admin?
+  %p
+    %b Last sign in at:
+    %b= @user.last_sign_in_at ? @user.last_sign_in_at.in_time_zone("Eastern Time (US & Canada)").strftime("%Y-%m-%d %H:%M") : 'Never'
+
+= link_to 'Edit', edit_user_path(@user)
+\|
+= link_to 'Back', users_path

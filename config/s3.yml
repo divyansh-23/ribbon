@@ -1,0 +1,27 @@
+development:
+  access_key_id: <%= ENV["RIB_S3_KEY"] %>
+  secret_access_key: <%= ENV["RIB_S3_SECRET"] %>
+  bucket: ENV["RIB_S3_BUCKET"]
+  s3_region: ENV["RIB_S3_REGION"]
+  region: ENV["RIB_S3_REGION"]
+
+production:
+  access_key_id: <%= ENV["RIB_S3_KEY"] %>
+  secret_access_key: <%= ENV["RIB_S3_SECRET"] %>
+  s3_region: ENV["RIB_S3_REGION"]
+  region: ENV["RIB_S3_REGION"]
+  bucket: ribbon-files
+
+# development:
+#   bucket: 'dv-work'
+#   access_key_id: 'AKIAYS2NVX3YKJJKYBWQ'
+#   secret_access_key: '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'
+#   s3_region: 'us-west-2'
+#   s3_region: 'us-west-2'
+
+# production:
+#   bucket: 'dv-work'
+#   access_key_id: 'AKIAYS2NVX3YKJJKYBWQ'
+#   secret_access_key: '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'
+#   s3_region: 'us-west-2'
+#   s3_region: 'us-west-2'

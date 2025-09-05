@@ -1,0 +1,12 @@
+{
+  "name": "edanalytics-ribbon-web",
+  "version": "0.0.0",
+  "description": "NodeJS package for Ribbon",
+  "repository": "https://bitbucket.umd.edu/scm/edanalytics/edanalytics-ribbon-web-docker.git",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.478.0",
+    "@aws-sdk/client-kms": "^3.478.0",
+    "@aws-sdk/lib-dynamodb": "^3.478.0",
+    "async": "^3.2.6"
+  }
+}

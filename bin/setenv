@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+
+echo "Running setenv in ${UMD_AH_ENVIRONMENT} environment"
+
+## Get credentials
+case ${UMD_AH_ENVIRONMENT} in
+  qa)
+      export UMD_AH_CRED_TABLE="credential-store-CredentialStoreTable-YF6190W9Y1GO"
+      DATABASE_HOST="rds-aurora-edanalytics.it-qa-apphosting.aws.umd.edu"
+      RIB_S3_BUCKET="edanalytics-ribbon-localstoragebucket-ilkewnyma0ai"
+      DATABASE_USERNAME="ribbon"
+      DATABASE="apphosting"
+      echo "Retrieving database password(s) from credstore"
+      DATABASE_PASSWORD=$(creds/credstore.js ribbon-db)
+      ;;
+  prod)
+      export UMD_AH_CRED_TABLE="credential-store-CredentialStoreTable-1DUI1AJ65RWSU"
+      DATABASE_HOST="rds-aurora-edanalytics.it-prod-apphosting.aws.umd.edu"
+      RIB_S3_BUCKET="edanalytics-ribbon-localstoragebucket-xu9prceohglo"
+      DATABASE_USERNAME="ribbon"
+      DATABASE="apphosting"
+      echo "Retrieving database password(s) from credstore"
+      DATABASE_PASSWORD=$(creds/credstore.js ribbon-db)
+      ;;
+  dev)
+      export UMD_AH_CRED_TABLE="credential-store-CredentialStoreTable-KSZY4CU405WG"
+      DATABASE_HOST="rds-aurora-edanalytics.cluster-czhvxjmle8ns.us-east-1.rds.amazonaws.com"
+      RIB_S3_BUCKET="edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w"
+      DATABASE_USERNAME="ribbon"
+      DATABASE="apphosting"
+      echo "Retrieving database password(s) from credstore"
+      DATABASE_PASSWORD=$(creds/credstore.js ribbon-db)
+      ;;
+  *)
+    #   DATABASE_HOST="db"
+    #   DATABASE_USERNAME="myapp"
+    #   DATABASE="myapp_development"
+    #   DATABASE_PASSWORD="mysecretpassword"
+    #   ;;
+      export UMD_AH_CRED_TABLE="credential-store-CredentialStoreTable-KSZY4CU405WG"
+      DATABASE_HOST="rds-aurora-edanalytics.cluster-czhvxjmle8ns.us-east-1.rds.amazonaws.com"
+      RIB_S3_BUCKET="edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w"
+      DATABASE_USERNAME="ribbon"
+      DATABASE="apphosting"
+      echo "Retrieving database password(s) from credstore"
+      DATABASE_PASSWORD="KDURTFGASCVBS_76TyrFGD"
+      ;;
+esac
+export DATABASE_HOST
+export RIB_S3_BUCKET
+
+export DATABASE_PASSWORD
+export DATABASE
+export DATABASE_USERNAME
+
+echo "Starting rails server"
+exec bundle exec rails server -b 0.0.0.0 -p 8080

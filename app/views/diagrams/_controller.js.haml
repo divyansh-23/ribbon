@@ -1,0 +1,298 @@
+:javascript
+  function RibbonController(){
+    this.diagram = null;
+    this.graph = null;
+    this.filter = null;
+    this.data_format = '#{@diagram.data_format}';
+    this.local = #{@diagram.local};
+    this.format_converter = new RibbonFormatConverter(this.data_format);
+
+    this.data = null;
+    this.get_data_and_init();
+  }
+
+  RibbonController.prototype = {
+    get_data_and_init: function(){
+      var controller = this;
+      if (this.local){
+        if (this.data_format == "json" || this.data_format == "csv-aggregate"){
+          $("#demographics_file").hide();
+        }
+
+        $.blockUI({ message: $("#local_file_prompt"), fadeIn: 10, onBlock: function(){
+          $("#load_local_file").click(function(){
+            var data_in = [];
+            var data_ready = {};
+            var reader1 = new FileReader();
+            var reader2 = new FileReader();
+
+            function dataReady(){
+              controller.data = controller.format_converter.convert(data_in);
+
+              controller.clean_data();
+
+              controller.filter = new RibbonFilter(controller.data);
+
+              controller.initialize();
+              controller.register_form_events();
+
+              $.unblockUI();
+            }
+
+            if (controller.data_format == "json"){
+              reader1.onload = function (event){
+                data_in.push({"name": "data", "data": event.target.result});
+                dataReady();
+              };
+
+              if ($('#records').get(0).files[0] != undefined){
+                reader1.readAsText($('#records').get(0).files[0]);
+              } else {
+                alert("You must choose a file to create the diagram from.");
+              }
+
+            } else if (controller.data_format == "csv"){
+              data_ready["records"] = false;
+              data_ready["demographics"] = false;
+
+              reader1.onload = function (event){
+                data_in.push({"name": "records", "data": event.target.result});
+                data_ready["records"] = true;
+                if (data_ready["records"] && data_ready["demographics"]) dataReady();
+
+              };
+
+              reader2.onload = function (event){
+                data_in.push({"name": "demographics", "data": event.target.result});
+                data_ready["demographics"] = true;
+                if (data_ready["records"] && data_ready["demographics"]) dataReady();
+              };
+
+              if ($('#records').get(0).files[0] != undefined){
+                reader1.readAsText($('#records').get(0).files[0]);
+              } else {
+                alert("You must choose at least a records file to create the diagram.");
+              }
+
+              if ($('#demographics').get(0).files[0] != undefined){
+                reader2.readAsText($('#demographics').get(0).files[0]);
+              } else {
+                data_ready["demographics"] = true;
+                if (data_ready["records"] && data_ready["demographics"]) dataReady();
+              }
+            } else if (controller.data_format == "csv-aggregate"){
+              reader1.onload = function (event){
+                data_in.push({"name": "records", "data": event.target.result});
+                dataReady();
+              };
+              if ($('#records').get(0).files[0] != undefined){
+                reader1.readAsText($('#records').get(0).files[0]);
+              } else {
+                alert("You must choose a file to create the diagram from.");
+              }
+            }
+          });
+        }});
+
+      } else {
+        this.data = this.format_converter.convert(
+          #{ @diagram.data_files.map do |df| { "name" => df.filename, "data" => df.download.encode('UTF-8', :invalid => :replace, :undef => :replace) } end.to_json.html_safe }
+        );
+
+        this.clean_data();
+
+        this.filter = new RibbonFilter(this.data);
+
+        this.initialize();
+        this.register_form_events();
+      }
+
+
+    },
+
+    register_form_events: function(){
+      var controller = this;
+
+      //testing sortable
+      $('#included_groups, #other_groups').sortable({
+        connectWith: 'connected',
+
+        hoverClass: 'group_list_hovered',
+
+        placeholder: '<hr>'
+      });
+
+      $("#control_toggle").click(function(){
+        $("#menu_toggle_instructions").hide();
+        $("#controls").animate({width: 'toggle'});
+      });
+
+      $(".wrap").addClass("wrap-wide").removeClass("wrap");
+
+
+      $("#time_select_update").click(function(){
+        controller.graph.views = $("#time_select").val();
+        controller.diagram.total_width = controller.graph.views.length * 300 + 300;
+        controller.recalculate_and_redraw();
+      });
+
+      $("#font_size").change(function(){
+        if (isNaN($(this).val())){
+          $(this).val(controller.diagram.fontSize);
+        } else {
+          controller.diagram.fontSize = parseInt($(this).val());
+          controller.recalculate_and_redraw();
+        }
+
+      });
+
+      $("#color_group_select").change(function(){
+         controller.recalculate_and_redraw();
+      });
+
+      $("#deselect_links").click(function(){
+        controller.graph.select_none();
+        controller.diagram.draw();
+        return false;
+      });
+
+      // Independent selection handling for dropdown options (with exception for "major")
+      $('select').each(function(){
+          var select = $(this), values = {};
+            $('option', select).each(function(i, option){
+                values[option.value] = option.selected;
+            });
+
+              // Handle the click event on each option
+            $('option', select).click(function(event){
+                // Toggle the selected state of the clicked option
+                values[this.value] = !values[this.value];
+            });
+      });
+
+      // Adding the "mousedown" event to ensure the scroll position and toggle selection
+      $('option').mousedown(function(e) {
+          e.preventDefault(); // Prevent default behavior of mousedown
+
+          // Get the current scroll position of the parent (the dropdown)
+          var originalScrollTop = $(this).parent().scrollTop();
+
+          // Toggle the 'selected' state
+          $(this).prop('selected', !$(this).prop('selected'));
+
+          // Keep the dropdown focused after selection
+          var self = this;
+          $(this).parent().focus();
+
+          // Ensure the scroll position is maintained
+          setTimeout(function() {
+              $(self).parent().scrollTop(originalScrollTop);
+          }, 0);
+
+          return false;  // Prevent default browser behavior
+      });
+
+      $(".select_all").click(function(e) {
+        e.preventDefault();  // Prevent the default behavior of the link
+        // Get the ID of the dropdown related to the "Select All" button
+        var selectId = $(this).attr("id").replace("_select_all", "");
+        // Set all options in the dropdown to selected
+        $("#" + selectId + " option").prop('selected', true);
+        // Trigger the dropdown to gain focus
+        $("#" + selectId).focus();
+        return false;  // Ensure the page doesn't refresh
+      });
+
+      $(".select_none").click(function(){
+        // e.preventDefault();  // Prevent the default behavior of the link
+        // Get the ID of the dropdown related to the "Select All" button
+        var selectId = $(this).attr("id").replace("_select_none", "");
+        // Deselect all options in the dropdown
+        $("#" + selectId + " option").prop('selected', false);  // Deselect all options
+
+        // Trigger the dropdown to gain focus
+        $("#" + selectId).focus();
+        return false;
+      });
+
+      $("#toggle_vis_desc").click(function(){
+        $("#vis_desc").slideToggle(500, function(){
+          if ($("#vis_desc").is(':visible')){
+            $("#toggle_vis_desc").html("Hide Description");
+          } else {
+            $("#toggle_vis_desc").html("Show Description");
+          }
+        });
+      });
+
+      $(".apply_filter").click(controller.recalculate_and_redraw);
+
+      var instructions_showing = true;
+
+      $("#toggle_instructions").click(function(e){
+        e.preventDefault();
+
+        if (instructions_showing){
+          $(this).text("Show Instructions");
+          $("#instructions").slideUp();
+        }else{
+          $("#instructions").slideDown();
+          $(this).text("Hide Instructions");
+        }
+        instructions_showing = !instructions_showing;
+      });
+    },
+
+    initialize: function(){
+      //this.filter.build_time_selectors();
+
+      //Create the graph and the diagram
+      this.graph = new RibbonGraph(this.data, this.filter);
+      this.diagram = new RibbonDiagram(this.graph);
+
+      //Draw the diagram
+      this.diagram.draw();
+    },
+
+    recalculate_and_redraw: function(){
+      var controller = ribbon_controller;
+
+      $.blockUI({ message: '<h1>Recalculating Graph</h1>', fadeIn: 10 });
+
+      setTimeout(function(){
+        controller.graph.reset_node_and_link_values();
+        controller.graph.build();
+        controller.diagram.draw();
+        $.unblockUI();
+      }, 50);
+    },
+
+    clean_data: function(){
+      var students_with_no_records = [];
+      console.log(this.data);
+      this.data["STUDENTS"].forEach(function(s){
+        if (s["RECORDS"].length == 0)
+          students_with_no_records.push(s);
+      });
+
+      if (students_with_no_records.length > 0){
+        var swnr_ids = [];
+
+        students_with_no_records.forEach(function(s){
+          swnr_ids.push(s["ID"]);
+        });
+
+        $("#flash").append('<div id="error">Warning: '+swnr_ids.length+' students in your dataset did not have any records. They have not been included in the diagram. Their IDs are:'+swnr_ids.join(",")+'</div>');
+
+        this.data["STUDENTS"] = this.data["STUDENTS"].filter(function(s){
+          return s["RECORDS"].length > 0;
+        });
+      }
+    }
+  }
+
+  var ribbon_controller = null;
+
+  window.onload = function(){
+    ribbon_controller = new RibbonController();
+  }

@@ -1,0 +1,59 @@
+
+
+{
+    "STUDENTS": [
+        {
+            "DEMOGRAPHICS": {
+                "gender": "Male",
+                "ethnicity": "Hispanic"
+            },
+
+            "RECORDS": [
+                {
+                    "TIME":"Fall 2014",
+                    "GROUPS": [
+                        {"status": "Enrolled"},
+                        {"discipline": "BIOSC"},
+                        {"major": "BBMI"}
+                    ]
+                },
+
+                {
+                    "TIME":"Fall 2015",
+                    "GROUPS": [
+                        {"status": "Enrolled"},
+                        {"discipline": "BIOSC"},
+                        {"major": "BBMI"}
+                    ]
+                }
+            ]
+        },
+
+        {
+            "DEMOGRAPHICS": {
+                "gender": "Female",
+                "ethnicity": "White"
+            },
+
+            "RECORDS": [
+                {
+                    "TIME":"Fall 2014",
+                    "GROUPS": [
+                        {"status": "Enrolled"},
+                        {"discipline": "BIOSC"},
+                        {"major": "BBMI"}
+                    ]
+                },
+
+                {
+                    "TIME":"Fall 2015",
+                    "GROUPS": [
+                        {"status": "Enrolled"},
+                        {"discipline": "BIOSC"},
+                        {"major": "BCHE"}
+                    ]
+                }
+            ]
+        }
+    ]
+}

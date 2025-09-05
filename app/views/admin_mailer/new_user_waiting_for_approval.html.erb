@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+</head>
+<body>
+
+  <h1>A new user is requesting access to the Ribbon Tool for <%= @user.institution.name %>.</h1>
+
+  <p>
+      Name: <%= @user.name %>
+  </p>
+
+  <p>
+      Email: <%= @user.email %>
+  </p>
+
+  <p>
+      Approve this user at <a href="<%= root_url %>users/<%= @user.id %>/edit"><%= root_url %>users/<%= @user.id %>/edit</a>
+  </p>
+
+</body>
+</html>
+
+
+
+
+
+

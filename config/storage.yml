@@ -1,0 +1,65 @@
+# local:
+#   # service: Disk
+#   # root: <%= Rails.root.join("storage") %>
+#   service: S3
+#   access_key_id: ASIAVCZCWTIYLGQ6F47R
+#   secret_access_key: uQbDNa5itf/0ObuF4ap8czD4vrIqqYVVfC+RT2QC
+#   # access_key_id: <%= ENV["S3_KEY"] %>
+#   # secret_access_key: <%= ENV["S3_SECRET"] %>
+#   region: us-east-1 #<%= ENV["S3_REGION"] %>
+#   bucket: edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w
+
+# test:
+#   service: Disk
+#   root: <%= Rails.root.join("tmp/storage") %>
+
+# amazon:
+#   service: S3
+#   access_key_id: 'AKIAYS2NVX3YKJJKYBWQ'
+
+#   # access_key_id: "ASIAVCZCWTIYAITGKC7S"
+#   # secret_access_key: "MqePb/1+oaNVX3d6OFXL4tfca5c2ZSDaqF7g7oE7"
+#   secret_access_key: 'Yl8AVxKPKPQcIKWFOstCvDOruNJgcz/sTavUn4Tf'
+#   #access_key_id: <%= ENV["RIB_S3_KEY"] %>
+#   #secret_access_key: <%= ENV["RIB_S3_SECRET"] %>
+#   # region: "us-east-1" #<%= ENV["RIB_S3_REGION"] %>
+#   region: 'us-west-2'
+#   # bucket: "edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w" #<%= ENV["RIB_S3_BUCKET"] %>
+#   # upload:
+#   #   tagging: 'object_lifecycle=lifecycle_archive'
+#   bucket: 'dv-work'
+
+
+# amazon:
+#   service: S3
+#   region: 'us-west-2'
+#   # upload:
+#   #   tagging: 'object_lifecycle=lifecycle_archive'
+#   bucket: 'dv-work'  
+
+#   service: S3
+#   access_key_id: "ASIAVCZCWTIYLGQ6F47R"
+#   secret_access_key: "uQbDNa5itf/0ObuF4ap8czD4vrIqqYVVfC+RT2QC"
+#   # access_key_id: <%= ENV["S3_KEY"] %>
+#   # secret_access_key: <%= ENV["S3_SECRET"] %>
+#   region: us-east-1 #<%= ENV["S3_REGION"] %>
+#   bucket: edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w #<%= ENV["S3_BUCKET"] %>
+#   upload:
+#     tagging: 'object_lifecycle=lifecycle_archive'
+
+
+# amazon:
+dev_amazon:
+  service: S3
+  region: 'us-east-1'
+  bucket: <%= ENV["RIB_S3_BUCKET"] %>
+
+# dev_amazon:
+#   service: S3
+#   access_key_id: 'AKIAYS2NVX3YKJJKYBWQ'
+#   secret_access_key: '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'
+#   region: 'us-west-2'
+#   # bucket: "edanalytics-ribbon-localstoragebucket-vqhvdxzb9f9w" #<%= ENV["RIB_S3_BUCKET"] %>
+#   # upload:
+# #   tagging: 'object_lifecycle=lifecycle_archive'
+#   bucket: 'dv-work'

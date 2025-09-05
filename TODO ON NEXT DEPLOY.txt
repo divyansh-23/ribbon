@@ -1,0 +1,11 @@
+rake db:migrate:DOWN VERSION=20141104195210    (create access levels)
+
+then deploy with migration
+
+then delete migration that removes access level id (20150206210322) from users and commit again
+
+then confirm all existing users
+
+then assign institution admins.
+
+For institutions with no response

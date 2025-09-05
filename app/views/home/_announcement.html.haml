@@ -1,0 +1,7 @@
+- if announcement
+  .news_box
+    - if announcement.admin_only
+      %p{:style => "color: yellow;"} Admin Only Announcement:
+    .message= announcement.message.html_safe
+    %p.posted_on
+      = "Posted on #{announcement.created_at.strftime("%D")}"

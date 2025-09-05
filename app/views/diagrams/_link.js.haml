@@ -1,0 +1,46 @@
+:javascript
+  function RibbonLink(src_node, tgt_node, link_count){
+  //function RibbonLink(src_node, tgt_node){  
+    this.source = src_node;
+    this.target = tgt_node;
+
+   // this.value = 1; 
+    this.value = link_count || 1; 
+    //added from 1 to link_count
+
+    this.showing = (src_node.showing && tgt_node.showing);
+    this.selected = (src_node.selected || tgt_node.selected);
+  }
+
+  RibbonLink.prototype = {
+    increment_value : function(link_count){
+      this.value+=link_count;
+      this.source.value+=link_count;
+      this.target.value+=link_count;
+
+    },
+
+    reset_value : function(){
+      this.source.value = 0;//this.value;
+      this.target.value = 0;//this.value;
+      this.value = 0;
+    },
+
+    is_showing : function(){
+      return this.showing;
+    },
+
+    is_selected : function(){
+      return this.selected;
+    },
+
+    is_nonzero : function(){
+      return this.value > 0;
+    },
+
+    toggle_selected: function(){
+      this.selected = !this.selected;
+    }
+
+
+  }

@@ -1,0 +1,116 @@
+#header
+  %p
+    You are:
+    %a{ href: user_path(current_user) }
+      = current_user.name
+  .slicknav-container
+    .slicknav
+    %ul#menu{ style: "display:none;" }
+      %li= link_to 'Home', root_path
+      - if policy(User).index?
+        %li= link_to 'Users', users_path
+      - if policy(Diagram).create?
+        %li
+          Diagrams
+          %ul
+            %li= link_to 'List', diagrams_path
+            %li= link_to 'Create', new_diagram_path
+      - else
+        %li= link_to 'Diagrams', diagrams_path
+      - if current_user.super_admin
+        %li= link_to 'Institutions', institutions_path
+
+      - if current_user.has_role?('institution-admin') || current_user.super_admin
+        %li= link_to 'Download User Logs (CSV)', export_user_logs_path, { target: "_blank" }
+
+      %li= link_to 'Sign out', destroy_user_session_path, method: :delete
+
+  %h1#site_title
+    = link_to "Ribbon Tool", root_path
+%h2
+  Listing Diagrams
+  - if params[:category]
+    In Category
+    "#{params[:category]}"
+
+  - if params[:creator]
+    Created By
+    = params[:creator]
+
+.index-nav-links
+  = form_for :diagrams, :url=> diagrams_path, :html => { :method => 'GET' } do |f|
+    = f.submit "View All Diagrams"
+
+  %h3.diagram_index_nav Browse By Category:
+  = form_for :diagrams, :url=> diagrams_path, :html => { :method => 'GET' } do |f|
+    %div{:style => "display:inline-block"}
+      = select_tag :category, options_for_select(@categories, :selected => params[:category]), :style => "width: 100px;"
+    = f.submit "Go", :style => "width: 100px;"
+
+  %h3.diagram_index_nav Browse By Creator:
+  = form_for :diagrams, :url=> diagrams_path, :html => { :method => 'GET' } do |f|
+    %div{:style => "display:inline-block"}
+      = select_tag :creator, options_for_select(@creators, :selected => params[:creator]), :style => "width: 100px;"
+    = f.submit "Go", :style => "width: 100px;"
+
+- if policy(Diagram).create?
+  #create_diagram_link
+    = link_to 'Create a New Diagram', new_diagram_path, :style => "font-size: x-large;"
+
+
+%table.datatable.responsive.no-wrap
+  %thead
+    %tr
+      %th Name
+      %th Category
+      %th Tags
+      %th Creator
+      %th Shared With
+      %th Last Updated
+      %th Last Used By
+      %th Last Used At
+      %th
+  %tbody
+    - @diagrams.each do |diagram|
+      %tr
+        %td= link_to diagram.name, diagram
+        %td= diagram.category
+        %td= diagram.tag_list
+        %td= diagram.creator.institution == current_user.institution ? diagram.creator.name : diagram.institution.name
+        %td
+          - if diagram.share_with_all_institutions
+            = "All Institutions"
+          - elsif diagram.share_with_all
+            = "All Users in #{diagram.institution.name}"
+          - elsif diagram.users.count > 0
+            - diagram.users.each do |u|
+              %p= u.name
+          - else
+            = "No One"
+
+        %td= diagram.updated_at.strftime("%m/%d/%Y")
+        %td= diagram.last_used_by ? diagram.last_used_by.name : 'Never Used'
+        %td= diagram.last_used_at ? diagram.last_used_at.strftime("%m/%d/%Y %I:%M %p") : 'Never'
+        %td.diagram_controls{:id => "control_cell_#{diagram.id}"}
+          %ul.control_menu{:id => "control_menu_#{diagram.id}", :style => "display:none;"}
+            %li= link_to 'Show', diagram
+            - if policy(diagram).download?
+              %li
+                Download
+                %ul
+                  - diagram.data_files.each do |df|
+                    %li= link_to "Download #{df.filename.to_s}", url_for(df)
+            - if policy(diagram).edit?
+              %li= link_to 'Edit', edit_diagram_path(diagram)
+            - if policy(diagram).destroy?
+              %li= link_to 'Destroy', diagram, :method => :delete, :data => { :confirm => 'Are you sure?' }
+  %br
+
+:javascript
+  $(".control_menu").each(function(){
+    $(this).slicknav({
+      prependTo: ("#control_cell_"+$(this).attr("id").split("_")[2]),
+      label: "Actions",
+      duration: 50
+    });
+  });

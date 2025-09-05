@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  web:
+    # entrypoint: sleep 100000
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - C:/Users/divyansh/.aws/credentials:/root/.aws/credentials:/root/.aws/credentials
+    # depends_on:
+    #   - db
+    environment:
+      AWS_PROFILE: edanalytics-Developer@it-dev-apphosting
+      UMD_AH_CRED_TABLE: credential-store-CredentialStoreTable-KSZY4CU405WG
+      DATABASE_HOST: rds-aurora-edanalytics.cluster-czhvxjmle8ns.us-east-1.rds.amazonaws.com
+      DATABASE_USERNAME: ribbon
+      DATABASE: apphosting
+      DATABASE_PASSWORD: KDURTFGASCVBS_76TyrFGD
+      # DATABASE_HOST: db
+      # DATABASE_NAME: myapp_development
+      # DATABASE_USER: myapp
+      # DATABASE_PASSWORD: mysecretpassword
+  # db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_USER: myapp
+  #     POSTGRES_PASSWORD: mysecretpassword
+  #     POSTGRES_DB: myapp_development

@@ -1,0 +1,101 @@
+= form_for @user do |f|
+  - if @user.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@user.errors.count, "error")} prohibited this user from being saved:"
+      %ul
+        - @user.errors.full_messages.each do |msg|
+          %li= msg
+  .indent
+    - if current_user.super_admin
+      .field
+        = f.label :institution_id, "Institution"
+        = f.select(:institution_id,  options_for_select(Institution.all.map{|u| [u.name, u.id]}, :selected => @user.institution.id))
+
+    .field
+      = f.label :name
+      = f.text_field :name
+
+    .field
+      = f.label :email
+      = f.text_field :email
+
+    .field
+      = f.label :title
+      = f.text_field :title
+
+    .field
+      = f.label :department
+      = f.text_field :department
+
+    .field
+      = f.label :username, "UMD Directory ID"
+      = f.text_field :username
+
+    .field
+      = f.label :uid_number, "UMD Directory ID Number"
+      = f.text_field :uid_number
+
+    .field
+      = f.label :why_give_access, "Why to give access?"
+      = f.text_area :why_give_access, rows: 5, class: 'new_user_text_fields'
+
+    .field
+      = f.label :how_did_you_learn_about, "How did they learn about this tool?"
+      = f.text_area :how_did_you_learn_about, rows: 2, class: 'new_user_text_fields'
+
+  .indent
+    - if policy(current_user).set_roles?
+      .field
+        %h2
+          Roles
+        #role-select
+          = render "role_select.html"
+
+  .indent
+    - if policy(current_user).approve?
+      %h2 Approval
+      .indent
+        .field
+          = f.label :approved, "Approved:"
+          = f.check_box :approved
+
+    %h2 Diagram Sharing:
+    .indent
+      .field
+        - source_for_diagrams = (current_user.has_role?('institution-admin') || current_user.super_admin ? current_user.institution : current_user)
+        = select_tag :user_diagrams,
+            options_for_select(source_for_diagrams.diagrams.map{|d| ["#{d.name} -- #{d.category}", d.id  ]},
+                                :selected => @user.diagrams.map(&:id)),
+            {:multiple => true}
+
+      %p
+        %b This user will automatically be given access to the following diagrams because of the permissions set on each diagram:
+        #shared_diagrams_table.indent
+          %table.datatable.responsive.no-wrap{:data => {:paging => 'false'}}
+            %thead
+              %tr
+                %th Name
+                %th Category
+                %th Creator
+                %th Edit
+              %tbody
+                - ( @user.institution.diagrams.where(:share_with_all => true)| Diagram.where(:share_with_all_institutions => true) ).each do |diagram|
+                  %tr
+                    %td= diagram.name
+                    %td= diagram.category
+                    %td= diagram.creator.institution == current_user.institution ? diagram.creator.name : diagram.institution.name
+                    - if policy(diagram).edit?
+                      %td= link_to 'Edit', edit_diagram_path(diagram)
+
+
+
+  .actions
+    = f.submit 'Save', :id => "user_submit"
+
+
+:javascript
+  $("#user_diagrams").select2({
+      width:'300px',
+      allowClear:true
+  });
+

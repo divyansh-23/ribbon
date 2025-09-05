@@ -1,0 +1,150 @@
+#header
+  %p
+    You are:
+    %a{ href: user_path(current_user) }
+      = current_user.name
+  .slicknav-container
+    .slicknav
+    %ul#menu{ style: "display:none;" }
+      %li= link_to 'Home', root_path
+      - if policy(User).index?
+        %li= link_to 'Users', users_path
+      - if policy(Diagram).create?
+        %li
+          Diagrams
+          %ul
+            %li= link_to 'List', diagrams_path
+            %li= link_to 'Create', new_diagram_path
+      - else
+        %li= link_to 'Diagrams', diagrams_path
+      - if current_user.super_admin
+        %li= link_to 'Institutions', institutions_path
+      %li= link_to 'Sign out', destroy_user_session_path, method: :delete
+
+  %h1#site_title
+    = link_to "Ribbon Tool", root_path
+
+#top_info
+  %a{:href => "", :id => "toggle_instructions", :style => "font-size:12px; font-weight:bold;"} Hide Instructions
+  #instructions
+    %ul{:style => "font-size:12px;"}
+      %li Hovering the cursor over a box or link will show additional information about the students represented.
+      -# %li Click a box to highlight the links leaving or entering the box. A double-click is sometimes necessary.
+      %li Click a link to highlight it.
+      %li If the diagram is too cluttered, right click on a box and select the "Show/Hide Unselected " option.
+      -# %li If the diagram is too cluttered check the "Hide Unselected Links" checkbox.
+      %li Drag a box to reposition it vertically.
+      %li By right clicking on a box you can choose to Expand the group, Collapse the group, Isolate the group, Toggle out/in links, Deselect all or Show/Hide unselected.
+      -# %li Shift-double-click a box to expand it (reveal the subcategories within it).
+      -# %li Shift-alt-double-click a box to collapse it and it's siblings into the parent (hide the subcategory and show the parent category).
+      -# %li Shift-double-clicking a box will contract all boxes in the same group back into the parent box.
+      %li Filter the population using the filter options in the collapsible menu accessible via the wrench icon to the left of the diagram.
+      %li The original data used in to create that graph can be downloaded by clicking the link at the top of the collapsible menu to the left.
+
+%table{:width => "100%", :style => "display:none;"}
+  %tr
+    %td
+      #start_disc_expanders
+    %td
+      #end_disc_expanders
+
+%hr{:style => "clear:both;"}
+#control_container
+  #control_toggle_container
+    %img#control_toggle{:src => asset_path("wrench.png"), :height => "24", :width => "24", :style => "display:inline"}
+    #menu_toggle_instructions <---- Click here to hide/show this menu.
+  #controls
+    - if policy(@diagram).edit?
+      #edit_link= link_to "Edit This Diagram", edit_diagram_path(@diagram)
+      %br
+    - if policy(@diagram).download?
+      #download_links
+        Download:
+        %div{:style => "margin-left: 20px;"}
+          - @diagram.data_files.each do |df|
+            = link_to "#{df.filename.to_s}", url_for(df)
+            %br
+
+    #time_selector{:style => "margin-top:10px; margin-bottom:10px;"}
+      %h2{:style => "margin-bottom:3px;"} Time Options:
+      %label{:for => "time_select", :style => "font-weight:bold"} Select Times to View:
+      %br
+      = button_tag "Select All", {:id => "time_select_all"}
+      %br
+      = select_tag "time_select", [], :multiple => true, :style => "height:200px; min-width: 100px;"
+      %br
+
+      = button_tag "Update", {:id => "time_select_update"}
+      %p Note: The first selected time defines the starting cohort.
+
+    #color_and_font
+      %h2{:style => "margin-bottom:3px;"} Appearance Options:
+      %label{:for => "color_group_select", :style => "font-weight:bold"} Color Nodes by Group:
+      %br
+      = select_tag "color_group_select", []
+      %br
+      %label{:for => "font_size", :style => "font-weight:bold"} Font Size:
+      %br
+      = text_field_tag "font_size", "13"
+      %br
+      = button_tag "Update", {:id => "color_group_select_update"}
+
+    #filter_menu
+      %h2{:style => "margin-bottom:3px;"} Filter Options:
+      %input{:type => :button, :value => "Update", :class => "apply_filter"}
+      #filters
+      %input{:type => :button, :value => "Update", :class => "apply_filter"}
+
+    #grouping_menu
+      %h2{:style => "margin-bottom:3px;"} Grouping Options (experimental):
+
+      Included Groups:
+      #included_groups.group_list
+
+      Other Groups:
+      #other_groups.group_list
+
+      %input{:type => :button, :value => "Update", :class => "apply_filter"}
+
+
+#ribbon_diagram_container
+  #vis_header{:style => "display:none;"}
+    #vis_title{:style => "margin:0 auto; font-size:x-large;"}
+
+    %a{:href => "#", :id =>'toggle_vis_desc'} Hide Description
+    #vis_desc{:style => "margin:0 auto;"}
+      Description:
+      = @diagram.description
+      #vis_filter_desc{:style => "margin:0 auto; font-size:x-large;"}
+
+    %br{:style => "clear:both;"}
+
+
+  #ribbon_diagram_chart
+    %h2#loadingMsg
+      This visualization may take several minutes to fetch the data it requires. Please be patient and do not refresh the page.
+      %br
+      =image_tag("spinner.gif")
+      Loading
+
+%br{:style => "clear:both;"}
+
+#local_file_prompt{:style => "display:none;"}
+  %h2 Please select a file to build the diagram from.  It will be kept on your local machine.
+  #records_file
+    = label_tag 'records'
+    = file_field_tag 'records'
+  #demographics_file
+    = label_tag 'demographics'
+    = file_field_tag 'demographics'
+  = button_tag 'Load', :type => 'button', :id => 'load_local_file'
+
+
+
+= render(:partial => "diagrams/link.js")
+= render(:partial => "diagrams/node.js")
+= render(:partial => "diagrams/diagram.js")
+= render(:partial => "diagrams/graph.js")
+= render(:partial => "diagrams/filter.js")
+= render(:partial => "diagrams/format_converter.js")
+= render(:partial => "diagrams/controller.js")

@@ -1,0 +1,228 @@
+Add a general description of this repository to this file.
+# Ribbon
+
+**Open-source Rails + D3 app that visualizes student timelines, courses & milestones for advising and curriculum analysis.**
+
+Ribbon is a web app for exploring student progress over time — courses, terms, milestones — rendered as clean, interactive timelines powered by D3.js. It’s designed for academic advising, cohort analysis, and curriculum planning.
+
+<p align="center">
+  <!-- Badges (replace with your own) -->
+  <a href="#"><img alt="CI" src="https://img.shields.io/badge/CI-passing-brightgreen"></a>
+  <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+
+> **Status**: Actively developed · Public beta
+
+## ✨ Features
+
+* Interactive timelines for students and cohorts (zoom, pan, hover tooltips)
+* Course, term, and milestone overlays
+* Filters by program/major/entry term
+* Export views (PNG/SVG/CSV)
+* Role-based access (admin / viewer)
+* Postgres-backed, Rails API + server-rendered views or SPA hybrid
+* Clean data model designed for institutional data feeds
+
+## 🧭 Demo
+
+* **Live demo**: *TBD* (link your public instance)
+* **Screenshots**: see [`/docs/screenshots`](docs/screenshots/) (add PNGs here)
+
+## 🛠️ Tech stack
+
+* **Backend**: Ruby on Rails (API + server-rendered) · PostgreSQL
+* **Frontend**: D3.js + (Stimulus/Hotwire or React — choose your flavor)
+* **Build tools**: esbuild/Vite (pick the one you use)
+* **Background jobs**: Sidekiq/ActiveJob (optional)
+* **Caching**: Redis (optional)
+
+---
+
+## 🚀 Quick start
+
+### 0) Prerequisites
+
+* Ruby **3.x** (set your exact version)
+* Bundler
+* Node.js **18+** (or 20+)
+* Yarn or Bun (optional)
+* PostgreSQL **13+**
+* Redis (if using Sidekiq/caching)
+
+### 1) Clone & configure
+
+```bash
+git clone https://github.com/<you>/<ribbon>.git
+cd ribbon
+cp .env.example .env            # create local env file
+bin/setup                       # if provided; otherwise see steps below
+```
+
+If `bin/setup` isn’t present, run manually:
+
+```bash
+bundle install
+# If using JS bundler
+yarn install  # or: npm install / bun install
+rails db:setup
+# If using JS dev server/Hotwire
+bin/dev       # foreman/procfile-based dev server (optional)
+# Or classic
+rails s
+```
+
+Now open [http://localhost:3000](http://localhost:3000).
+
+### Environment variables
+
+Create a `.env` (or use Rails credentials). Common variables:
+
+| Name               | Example                           | Purpose                         |
+| ------------------ | --------------------------------- | ------------------------------- |
+| `RAILS_ENV`        | `development`                     | Rails environment               |
+| `DATABASE_URL`     | `postgres://localhost/ribbon_dev` | Postgres connection             |
+| `REDIS_URL`        | `redis://localhost:6379/0`        | Redis for jobs/cache (optional) |
+| `SECRET_KEY_BASE`  | *(generated)*                     | Rails secrets (prod)            |
+| `RAILS_MASTER_KEY` | *(from credentials)*              | Decrypts Rails credentials      |
+| `HOST`             | `localhost`                       | Host used for URL generation    |
+| `PORT`             | `3000`                            | Local dev port                  |
+
+> Generate keys: `rails secret` (for `SECRET_KEY_BASE`), `EDITOR="code --wait" rails credentials:edit` (for credentials).
+
+### Seed data
+
+```bash
+rails db:seed
+```
+
+Seeds load sample students, courses, terms, and enrollments for local testing.
+
+### Tests & linting
+
+```bash
+# Pick the tools you actually use and update this section
+bundle exec rspec         # or: rails test
+bundle exec rubocop -A    # Ruby style
+npm run lint              # ESLint/Prettier, if applicable
+```
+
+---
+
+## 🧩 Architecture (high level)
+
+* **Core objects**: `Student`, `Course`, `Term`, `Enrollment`, `Milestone`, `Diagram` (or your actual model names)
+* **Ingestion**: CSV/API importers normalize institutional data
+* **Visualization**: D3.js layers (timeline axes, course blocks, milestone markers, tooltips)
+* **Auth**: Devise (or alternatives) with role-based policies (Pundit/CanCanCan)
+* **APIs**: JSON endpoints for timelines and filters
+
+Include diagrams in [`/docs/architecture`](docs/architecture/).
+
+---
+
+## ☁️ Deployment
+
+You can deploy Ribbon to any platform that supports Rails + Postgres:
+
+### Render (easy)
+
+1. Push code to GitHub.
+2. Create a **Web Service** on Render.
+3. Set environment: `DATABASE_URL`, `RAILS_MASTER_KEY`, `SECRET_KEY_BASE`, etc.
+4. Add a managed Postgres and (optionally) Redis.
+5. Build & start commands (example):
+
+   * Build: `bundle install && yarn install && rails assets:precompile`
+   * Start: `bundle exec puma -C config/puma.rb`
+
+### Fly.io (global)
+
+```bash
+fly launch
+fly secrets set RAILS_MASTER_KEY=... SECRET_KEY_BASE=...
+fly deploy
+```
+
+Attach a Postgres app and (optionally) Redis.
+
+### Docker (portable)
+
+Provide a `Dockerfile` and `docker-compose.yml`. Example `docker-compose.yml` outline:
+
+```yaml
+version: "3"
+services:
+  web:
+    build: .
+    ports: ["3000:3000"]
+    env_file: .env
+    depends_on: [db, redis]
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: password
+  redis:
+    image: redis:7
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please read:
+
+* [`CONTRIBUTING.md`](CONTRIBUTING.md)
+* [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+
+Typical workflow:
+
+1. Fork the repo & create a branch: `git checkout -b feat/your-feature`
+2. Run tests & linters locally
+3. Open a Pull Request with a clear description and screenshots for UI changes
+
+## 🔒 Security
+
+If you discover a vulnerability, please email **security\@yourdomain** and avoid filing public issues until we’ve triaged.
+
+## 🗺️ Roadmap
+
+* [ ] Public demo instance
+* [ ] Bulk importers for SIS exports
+* [ ] Accessibility audit of timeline components
+* [ ] Saved views & sharable filters
+* [ ] Improved printing/export fidelity
+
+## 🙏 Acknowledgements
+
+* D3.js team and community
+* Academic advising partners and early testers
+
+## 📄 License
+
+This project is licensed under the **MIT License** – see [`LICENSE`](LICENSE) for details.
+
+---
+
+## 🧹 Open‑sourcing checklist
+
+Before making Ribbon public:
+
+* [ ] **Remove secrets**: rotate API keys, clear credentials, and re-seal `config/credentials`
+* [ ] **Audit history**: ensure no secrets ever existed in Git history (use `trufflehog` / `git-filter-repo`)
+* [ ] **Choose a license**: MIT/Apache‑2.0 are popular defaults
+* [ ] **Add docs**: `README`, `LICENSE`, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`
+* [ ] **Enable CI**: GitHub Actions for tests/linters; Dependabot updates
+* [ ] **Issue templates**: bug/feature templates + PR template
+* [ ] **Branch protections**: require checks before merge
+
+---
+
+## 📎 Project metadata (replace with real values)
+
+* Ruby: `3.x`
+* Rails: `7.x`
+* Node: `18/20`
+* DB: PostgreSQL `13+`
+* JS bundler: `esbuild` / `Vite`
+* Test: `RSpec` / `Minitest`
+* Lint: `Rubocop`, `ESLint`/`Prettier`
