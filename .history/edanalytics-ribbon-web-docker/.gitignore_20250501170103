@@ -1,7 +1,0 @@
-*.settings*
-*target*
-*.classpath*
-*.project*
-*dependency-reduced-pom.xml*
-.idea*
-package-lock.json
